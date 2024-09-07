@@ -1,5 +1,5 @@
 {
-  description = "Seto - hardware accelerated keyboard driven screen selection tool";
+  description = "Eeyelop - Fancy keyboard driven notification daemon";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -32,6 +32,7 @@
             lua
             libGL
             glxinfo
+            valgrind
             freetype
             fontconfig
             clang-tools
