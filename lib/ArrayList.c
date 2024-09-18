@@ -63,7 +63,7 @@ int array_list_append(ArrayList *array_list, void *item) {
 }
 
 void array_list_deinit(ArrayList *array_list) {
-  for (size_t i = 0; i < array_list->len; i++) {
+  for (int i = 0; i < array_list->len; i++) {
     free(array_list->items[i]);
   }
   free(array_list->items);

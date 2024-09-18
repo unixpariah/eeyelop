@@ -12,6 +12,7 @@ typedef struct {
   struct zxdg_output_manager_v1 *output_manager;
   struct wl_seat *seat;
   ArrayList outputs;
+  bool exit;
 } Eeyelop;
 
 #endif // EEYELOP_H

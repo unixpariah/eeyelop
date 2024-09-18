@@ -21,10 +21,11 @@ typedef struct {
   struct wl_surface *surface;
   struct zwlr_layer_surface_v1 *layer_surface;
   struct zxdg_output_v1 *xdg_output;
+  struct wl_output *wl_output;
 } Output;
 
 void output_init(Output *, struct wl_surface *, struct zwlr_layer_surface_v1 *,
-                 struct zxdg_output_v1 *, int);
+                 struct wl_output *, struct zxdg_output_v1 *, int);
 
 void output_deinit(Output *);
 

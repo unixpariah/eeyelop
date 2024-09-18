@@ -1,6 +1,7 @@
 #include "../include/Output.h"
 #include "../include/wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "../include/xdg-output-client-protocol.h"
+#include "wayland-client-protocol.h"
 #include <stdio.h>
 
 void handle_global(void *data, struct wl_registry *registry, uint32_t name,
@@ -19,7 +20,7 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
     eeyelop->seat =
         wl_registry_bind(registry, name, &wl_seat_interface, version);
   } else if (strcmp(interface, wl_output_interface.name) == 0) {
-    struct wl_output *output =
+    struct wl_output *wl_output =
         wl_registry_bind(registry, name, &wl_output_interface, version);
 
     struct wl_surface *surface =
@@ -27,7 +28,7 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
 
     struct zwlr_layer_surface_v1 *layer_surface =
         zwlr_layer_shell_v1_get_layer_surface(eeyelop->layer_shell, surface,
-                                              output, 3, "eeyelop");
+                                              wl_output, 3, "eeyelop");
 
     // zwlr_layer_surface_v1_add_listener(layer_surface,
     // &layer_surface_listener,
@@ -42,25 +43,24 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
     zwlr_layer_surface_v1_set_keyboard_interactivity(layer_surface, 1);
     wl_surface_commit(surface);
 
-    struct zxdg_output_v1 *xdg_output =
-        zxdg_output_manager_v1_get_xdg_output(eeyelop->output_manager, output);
+    struct zxdg_output_v1 *xdg_output = zxdg_output_manager_v1_get_xdg_output(
+        eeyelop->output_manager, wl_output);
 
     // Create egl surface
 
-    Output output_s;
-    output_init(&output_s, surface, layer_surface, xdg_output, name);
+    Output output;
+    output_init(&output, surface, layer_surface, wl_output, xdg_output, name);
 
     zxdg_output_v1_add_listener(xdg_output, &xdg_output_listener, eeyelop);
 
-    if (array_list_append(&eeyelop->outputs, &output_s) == 1) {
+    if (array_list_append(&eeyelop->outputs, &output) == 1) {
       printf("Out of memory\n");
       exit(1);
     };
   }
 }
 
-void handle_global_remove(void *data, struct wl_registry *registry,
-                          uint32_t name) {
+void handle_global_remove(void *data, struct wl_registry *_, uint32_t name) {
   Eeyelop *eeyelop = data;
   for (int i = 0; i < eeyelop->outputs.len; i++) {
     Output *output = (Output *)eeyelop->outputs.items[i];
@@ -75,6 +75,20 @@ static const struct wl_registry_listener registry_listener = {
     .global_remove = handle_global_remove,
 };
 
+void eeyelop_deinit(Eeyelop *eeyelop) {
+  wl_seat_destroy(eeyelop->seat);
+  wl_compositor_destroy(eeyelop->compositor);
+  zwlr_layer_shell_v1_destroy(eeyelop->layer_shell);
+  zxdg_output_manager_v1_destroy(eeyelop->output_manager);
+
+  for (int i = 0; i < eeyelop->outputs.len; i++) {
+    Output *output = (Output *)eeyelop->outputs.items[i];
+    output_deinit(output);
+  }
+
+  array_list_deinit(&eeyelop->outputs);
+}
+
 int main(int argc, char const *argv[]) {
   struct wl_display *display = wl_display_connect(NULL);
   struct wl_registry *registry = wl_display_get_registry(display);
@@ -85,6 +99,7 @@ int main(int argc, char const *argv[]) {
       .seat = NULL,
       .output_manager = NULL,
       .outputs = array_list_init(sizeof(Output)),
+      .exit = false,
   };
 
   wl_registry_add_listener(registry, &registry_listener, &eeyelop);
@@ -95,15 +110,11 @@ int main(int argc, char const *argv[]) {
     exit(1);
   }
 
-  while (wl_display_dispatch(display)) {
-
-    for (int i = 0; i < eeyelop.outputs.len; i++) {
-      printf("%s\n", ((Output *)eeyelop.outputs.items[i])->output_info.name);
-      printf("%s\n",
-             ((Output *)eeyelop.outputs.items[i])->output_info.description);
-    }
+  while (wl_display_dispatch(display) && !eeyelop.exit) {
+    break;
   }
 
+  eeyelop_deinit(&eeyelop);
   wl_registry_destroy(registry);
   wl_display_disconnect(display);
 

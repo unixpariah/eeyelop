@@ -1,8 +1,10 @@
 #include "../include/Output.h"
+#include "wayland-client-protocol.h"
 
 void output_init(Output *output, struct wl_surface *surface,
                  struct zwlr_layer_surface_v1 *layer_surface,
-                 struct zxdg_output_v1 *xdg_output, int id) {
+                 struct wl_output *wl_output, struct zxdg_output_v1 *xdg_output,
+                 int id) {
 
   OutputInfo output_info = {
       .id = id,
@@ -14,6 +16,7 @@ void output_init(Output *output, struct wl_surface *surface,
       .height = 0,
   };
 
+  output->wl_output = wl_output;
   output->output_info = output_info;
   output->surface = surface;
   output->layer_surface = layer_surface;
@@ -25,11 +28,17 @@ void output_deinit(Output *output) {
   zwlr_layer_surface_v1_destroy(output->layer_surface);
   zxdg_output_v1_destroy(output->xdg_output);
   output_info_deinit(&output->output_info);
+  wl_output_release(output->wl_output);
 }
 
 void output_info_deinit(OutputInfo *output_info) {
   free(output_info->name);
   free(output_info->description);
+  output_info->id = 0;
+  output_info->x = 0;
+  output_info->y = 0;
+  output_info->width = 0;
+  output_info->height = 0;
 }
 
 void xdg_output_handle_name(void *data, struct zxdg_output_v1 *xdg_output,
@@ -109,7 +118,7 @@ void xdg_output_handle_logical_position(void *data,
   exit(1);
 }
 
-void xdg_output_handle_done() {}
+void xdg_output_handle_done(void *data, struct zxdg_output_v1 *xdg_output) {}
 
 const struct zxdg_output_v1_listener xdg_output_listener = {
     .name = xdg_output_handle_name,

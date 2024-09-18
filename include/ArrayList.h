@@ -1,3 +1,6 @@
+#ifndef ARRAY_LIST_H
+#define ARRAY_LIST_H
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -16,3 +19,5 @@ ArrayList array_list_init(size_t);
 void array_list_deinit(ArrayList *);
 
 int array_list_append(ArrayList *, void *);
+
+#endif // ARRAY_LIST_H
