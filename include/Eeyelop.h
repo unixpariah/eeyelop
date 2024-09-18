@@ -1,9 +1,10 @@
 #ifndef EEYELOP_H
 #define EEYELOP_H
 
-#include "./ArrayList.h"
-#include "./wlr-layer-shell-unstable-v1-client-protocol.h"
-#include "./xdg-output-client-protocol.h"
+#include "ArrayList.h"
+#include "Output.h"
+#include "wlr-layer-shell-unstable-v1-client-protocol.h"
+#include "xdg-output-client-protocol.h"
 #include <wayland-client-protocol.h>
 
 typedef struct {
@@ -14,5 +15,9 @@ typedef struct {
   ArrayList outputs;
   bool exit;
 } Eeyelop;
+
+Eeyelop eeyelop_init(void);
+
+void eeyelop_deinit(Eeyelop *eeyelop);
 
 #endif // EEYELOP_H

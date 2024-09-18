@@ -65,6 +65,7 @@ pub fn build(b: *std.Build) !void {
         "lib/ArrayList.c",
         "src/Output.c",
         "src/main.c",
+        "src/Eeyelop.c",
     }, .flags = &[_][]const u8{
         "-std=c11",
         "-pedantic",

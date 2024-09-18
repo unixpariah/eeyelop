@@ -1,7 +1,7 @@
-#include "../include/Output.h"
-#include "../include/wlr-layer-shell-unstable-v1-client-protocol.h"
-#include "../include/xdg-output-client-protocol.h"
+#include "Output.h"
 #include "wayland-client-protocol.h"
+#include "wlr-layer-shell-unstable-v1-client-protocol.h"
+#include "xdg-output-client-protocol.h"
 #include <stdio.h>
 
 void handle_global(void *data, struct wl_registry *registry, uint32_t name,
@@ -30,9 +30,8 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
         zwlr_layer_shell_v1_get_layer_surface(eeyelop->layer_shell, surface,
                                               wl_output, 3, "eeyelop");
 
-    // zwlr_layer_surface_v1_add_listener(layer_surface,
-    // &layer_surface_listener,
-    //                                    eeyelop);
+    zwlr_layer_surface_v1_add_listener(layer_surface,
+                                       &zwlr_layer_surface_listener, eeyelop);
 
     zwlr_layer_surface_v1_set_anchor(layer_surface,
                                      ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP |
@@ -75,32 +74,11 @@ static const struct wl_registry_listener registry_listener = {
     .global_remove = handle_global_remove,
 };
 
-void eeyelop_deinit(Eeyelop *eeyelop) {
-  wl_seat_destroy(eeyelop->seat);
-  wl_compositor_destroy(eeyelop->compositor);
-  zwlr_layer_shell_v1_destroy(eeyelop->layer_shell);
-  zxdg_output_manager_v1_destroy(eeyelop->output_manager);
-
-  for (int i = 0; i < eeyelop->outputs.len; i++) {
-    Output *output = (Output *)eeyelop->outputs.items[i];
-    output_deinit(output);
-  }
-
-  array_list_deinit(&eeyelop->outputs);
-}
-
 int main(int argc, char const *argv[]) {
   struct wl_display *display = wl_display_connect(NULL);
   struct wl_registry *registry = wl_display_get_registry(display);
 
-  Eeyelop eeyelop = {
-      .compositor = NULL,
-      .layer_shell = NULL,
-      .seat = NULL,
-      .output_manager = NULL,
-      .outputs = array_list_init(sizeof(Output)),
-      .exit = false,
-  };
+  Eeyelop eeyelop = eeyelop_init();
 
   wl_registry_add_listener(registry, &registry_listener, &eeyelop);
   wl_display_roundtrip(display);

@@ -1,5 +1,6 @@
-#include "../include/Output.h"
+#include "Output.h"
 #include "wayland-client-protocol.h"
+#include <stdio.h>
 
 void output_init(Output *output, struct wl_surface *surface,
                  struct zwlr_layer_surface_v1 *layer_surface,
@@ -126,4 +127,28 @@ const struct zxdg_output_v1_listener xdg_output_listener = {
     .logical_size = xdg_output_handle_logical_size,
     .logical_position = xdg_output_handle_logical_position,
     .done = xdg_output_handle_done,
+};
+
+void zwlr_layer_surface_handle_configure(
+    void *data, struct zwlr_layer_surface_v1 *layer_surface, uint32_t serial,
+    uint32_t width, uint32_t height) {
+  Eeyelop *eeyelop = data;
+
+  for (int i = 0; i < eeyelop->outputs.len; i++) {
+    Output *output = (Output *)eeyelop->outputs.items[i];
+    if (output->layer_surface == layer_surface) {
+      zwlr_layer_surface_v1_set_size(output->layer_surface, width, height);
+      zwlr_layer_surface_v1_ack_configure(output->layer_surface, serial);
+    }
+  }
+}
+
+void zwlr_layer_surface_handle_closed(
+    void *data, struct zwlr_layer_surface_v1 *layer_surface) {
+  Eeyelop *eeyelop = data;
+}
+
+const struct zwlr_layer_surface_v1_listener zwlr_layer_surface_listener = {
+    .configure = zwlr_layer_surface_handle_configure,
+    .closed = zwlr_layer_surface_handle_closed,
 };

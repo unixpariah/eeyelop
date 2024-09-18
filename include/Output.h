@@ -1,7 +1,8 @@
 #ifndef OUTPUT_H
 #define OUTPUT_H
 
-#include "../include/Eeyelop.h"
+#include "Eeyelop.h"
+#include <stdint.h>
 
 typedef struct {
   uint32_t id;
@@ -30,5 +31,7 @@ void output_init(Output *, struct wl_surface *, struct zwlr_layer_surface_v1 *,
 void output_deinit(Output *);
 
 extern const struct zxdg_output_v1_listener xdg_output_listener;
+
+extern const struct zwlr_layer_surface_v1_listener zwlr_layer_surface_listener;
 
 #endif // OUTPUT_H

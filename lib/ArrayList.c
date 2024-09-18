@@ -1,4 +1,4 @@
-#include "../include/ArrayList.h"
+#include "ArrayList.h"
 
 ArrayList array_list_init(size_t elem_size) {
   ArrayList array_list = {

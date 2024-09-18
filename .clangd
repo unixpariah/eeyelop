@@ -1,2 +1,9 @@
 CompileFlags:
-  Add: [-std=c11, -pedantic, -Wall, -W, -Wno-missing-field-initializers, -fno-sanitize=undefined]
+  Add:
+    - -std=c11
+    - -pedantic
+    - -Wall
+    - -W
+    - -Wno-missing-field-initializers
+    - -fno-sanitize=undefined
+    - -I../include
