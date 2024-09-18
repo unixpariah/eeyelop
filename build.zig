@@ -62,6 +62,8 @@ pub fn build(b: *std.Build) !void {
         "lib/xdg-shell-client-protocol.c",
         "lib/xdg-output-client-protocol.c",
         "lib/wlr-layer-shell-unstable-v1-client-protocol.c",
+        "lib/ArrayList.c",
+        "src/Output.c",
         "src/main.c",
     }, .flags = &[_][]const u8{
         "-std=c11",
