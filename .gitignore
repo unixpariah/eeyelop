@@ -5,3 +5,4 @@ include/wlr-layer-shell-protocol.h
 include/xdg-output-protocol.h
 include/xdg-shell-protocol.h
 .cache
+result
