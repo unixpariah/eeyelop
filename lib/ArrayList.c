@@ -1,4 +1,6 @@
-#include "ArrayList.h"
+#include <ArrayList.h>
+#include <stdlib.h>
+#include <string.h>
 
 ArrayList array_list_init(size_t elem_size) {
   ArrayList array_list = {
@@ -22,7 +24,7 @@ int array_list_ensure_total_capacity_precise(ArrayList *array_list,
                                              int new_capacity) {
   void **new_items = realloc(array_list->items, new_capacity * sizeof(void *));
   if (!new_items)
-    return 1;
+    return -1;
   array_list->capacity = new_capacity;
   array_list->items = new_items;
 
@@ -34,8 +36,8 @@ int array_list_add_one(ArrayList *array_list, void **new_item_ptr) {
   if (array_list->capacity < new_len) {
     int better_capacity = grow_capacity(array_list->capacity, new_len);
     if (array_list_ensure_total_capacity_precise(array_list, better_capacity) ==
-        1) {
-      return 1;
+        -1) {
+      return -1;
     }
   }
 
@@ -52,7 +54,7 @@ int array_list_append(ArrayList *array_list, void *item) {
 
   new_item_ptr = malloc(array_list->elem_size);
   if (!new_item_ptr) {
-    return 1;
+    return -1;
   }
 
   memcpy(new_item_ptr, item, array_list->elem_size);
@@ -63,11 +65,19 @@ int array_list_append(ArrayList *array_list, void *item) {
 }
 
 void *array_list_remove(ArrayList *array_list, int index) {
+  if (index < 0 || index >= array_list->len) {
+    return NULL;
+  }
+
+  void *item = array_list->items[index];
+
   for (int i = index; i < array_list->len - 1; i++) {
     array_list->items[i] = array_list->items[i + 1];
   }
 
-  array_list->len -= 1;
+  array_list->len--;
+
+  return item;
 }
 
 void array_list_deinit(ArrayList *array_list) {

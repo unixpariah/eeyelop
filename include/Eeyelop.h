@@ -1,11 +1,11 @@
 #ifndef EEYELOP_H
 #define EEYELOP_H
 
-#include "ArrayList.h"
-#include "Output.h"
-#include "wlr-layer-shell-unstable-v1-client-protocol.h"
-#include "xdg-output-client-protocol.h"
+#include <ArrayList.h>
+#include <Egl.h>
 #include <wayland-client-protocol.h>
+#include <wlr-layer-shell-unstable-v1-client-protocol.h>
+#include <xdg-output-client-protocol.h>
 
 typedef struct {
   struct wl_compositor *compositor;
@@ -13,10 +13,11 @@ typedef struct {
   struct zxdg_output_manager_v1 *output_manager;
   struct wl_seat *seat;
   ArrayList outputs;
+  Egl egl;
   bool exit;
 } Eeyelop;
 
-Eeyelop eeyelop_init(void);
+Eeyelop eeyelop_init(struct wl_display *display);
 
 void eeyelop_deinit(Eeyelop *eeyelop);
 

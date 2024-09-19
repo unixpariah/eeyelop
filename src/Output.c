@@ -1,11 +1,15 @@
-#include "Output.h"
-#include "wayland-client-protocol.h"
+#include "Egl.h"
+#include <Eeyelop.h>
+#include <Output.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <wayland-client-protocol.h>
 
-void output_init(Output *output, struct wl_surface *surface,
-                 struct zwlr_layer_surface_v1 *layer_surface,
-                 struct wl_output *wl_output, struct zxdg_output_v1 *xdg_output,
-                 int id) {
+Output output_init(EglSurface egl_surface, struct wl_surface *surface,
+                   struct zwlr_layer_surface_v1 *layer_surface,
+                   struct wl_output *wl_output,
+                   struct zxdg_output_v1 *xdg_output, int id) {
 
   OutputInfo output_info = {
       .id = id,
@@ -17,11 +21,17 @@ void output_init(Output *output, struct wl_surface *surface,
       .height = 0,
   };
 
-  output->wl_output = wl_output;
-  output->output_info = output_info;
-  output->surface = surface;
-  output->layer_surface = layer_surface;
-  output->xdg_output = xdg_output;
+  Output output = {
+      .wl_output = wl_output,
+      .output_info = output_info,
+      .surface = surface,
+      .layer_surface = layer_surface,
+      .xdg_output = xdg_output,
+      .egl_surface = egl_surface,
+
+  };
+
+  return output;
 }
 
 void output_deinit(Output *output) {
@@ -30,6 +40,7 @@ void output_deinit(Output *output) {
   zxdg_output_v1_destroy(output->xdg_output);
   output_info_deinit(&output->output_info);
   wl_output_release(output->wl_output);
+  egl_surface_deinit(&output->egl_surface);
 }
 
 void output_info_deinit(OutputInfo *output_info) {
@@ -56,7 +67,7 @@ void xdg_output_handle_name(void *data, struct zxdg_output_v1 *xdg_output,
     }
   }
 
-  printf("Output not found\n");
+  fprintf(stderr, "Output not found\n");
   exit(1);
 }
 
@@ -77,7 +88,7 @@ void xdg_output_handle_description(void *data,
     }
   }
 
-  printf("Output not found\n");
+  fprintf(stderr, "Output not found\n");
   exit(1);
 }
 
@@ -96,7 +107,7 @@ void xdg_output_handle_logical_size(void *data,
     }
   }
 
-  printf("Output not found\n");
+  fprintf(stderr, "Output not found\n");
   exit(1);
 }
 
@@ -115,7 +126,7 @@ void xdg_output_handle_logical_position(void *data,
     }
   }
 
-  printf("Output not found\n");
+  fprintf(stderr, "Output not found\n");
   exit(1);
 }
 
@@ -144,9 +155,7 @@ void zwlr_layer_surface_handle_configure(
 }
 
 void zwlr_layer_surface_handle_closed(
-    void *data, struct zwlr_layer_surface_v1 *layer_surface) {
-  Eeyelop *eeyelop = data;
-}
+    void *data, struct zwlr_layer_surface_v1 *layer_surface) {}
 
 const struct zwlr_layer_surface_v1_listener zwlr_layer_surface_listener = {
     .configure = zwlr_layer_surface_handle_configure,

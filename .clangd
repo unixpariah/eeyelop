@@ -1,5 +1,7 @@
 CompileFlags:
   Add:
+    - -x
+    - c
     - -std=c11
     - -pedantic
     - -Wall
@@ -7,3 +9,4 @@ CompileFlags:
     - -Wno-missing-field-initializers
     - -fno-sanitize=undefined
     - -I../include
+    - -Wunused-result

@@ -1,7 +1,7 @@
 #ifndef OUTPUT_H
 #define OUTPUT_H
 
-#include "Eeyelop.h"
+#include "Egl.h"
 #include <stdint.h>
 
 typedef struct {
@@ -17,16 +17,17 @@ typedef struct {
 void output_info_deinit(OutputInfo *);
 
 typedef struct {
-  // TODO: Egl surface
   OutputInfo output_info;
+  EglSurface egl_surface;
   struct wl_surface *surface;
   struct zwlr_layer_surface_v1 *layer_surface;
   struct zxdg_output_v1 *xdg_output;
   struct wl_output *wl_output;
 } Output;
 
-void output_init(Output *, struct wl_surface *, struct zwlr_layer_surface_v1 *,
-                 struct wl_output *, struct zxdg_output_v1 *, int);
+Output output_init(EglSurface, struct wl_surface *,
+                   struct zwlr_layer_surface_v1 *, struct wl_output *,
+                   struct zxdg_output_v1 *, int);
 
 void output_deinit(Output *);
 

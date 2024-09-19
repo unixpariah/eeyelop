@@ -66,6 +66,7 @@ pub fn build(b: *std.Build) !void {
         "src/Output.c",
         "src/main.c",
         "src/Eeyelop.c",
+        "src/Egl.c",
     }, .flags = &[_][]const u8{
         "-std=c11",
         "-pedantic",
@@ -73,6 +74,7 @@ pub fn build(b: *std.Build) !void {
         "-W",
         "-Wno-missing-field-initializers",
         "-fno-sanitize=undefined",
+        "-Wunused-result",
     } });
 
     const wayland_protocols_dir = try getWaylandProtocolsDir(alloc);

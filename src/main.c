@@ -1,9 +1,14 @@
 #include "ArrayList.h"
+#include "Eeyelop.h"
+#include "Egl.h"
 #include "Output.h"
+#include "wayland-client-core.h"
 #include "wayland-client-protocol.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "xdg-output-client-protocol.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 void handle_global(void *data, struct wl_registry *registry, uint32_t name,
                    const char *interface, uint32_t version) {
@@ -46,15 +51,16 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
     struct zxdg_output_v1 *xdg_output = zxdg_output_manager_v1_get_xdg_output(
         eeyelop->output_manager, wl_output);
 
-    // Create egl surface
+    int size[2] = {500, 500};
+    EglSurface egl_surface = egl_surface_init(&eeyelop->egl, surface, size);
 
-    Output output;
-    output_init(&output, surface, layer_surface, wl_output, xdg_output, name);
+    Output output = output_init(egl_surface, surface, layer_surface, wl_output,
+                                xdg_output, name);
 
     zxdg_output_v1_add_listener(xdg_output, &xdg_output_listener, eeyelop);
 
-    if (array_list_append(&eeyelop->outputs, &output) == 1) {
-      printf("Out of memory\n");
+    if (array_list_append(&eeyelop->outputs, &output) == -1) {
+      fprintf(stderr, "Out of memory\n");
       exit(1);
     };
   }
@@ -76,22 +82,27 @@ static const struct wl_registry_listener registry_listener = {
     .global_remove = handle_global_remove,
 };
 
-int main(int argc, char const *argv[]) {
+int main(void) {
   struct wl_display *display = wl_display_connect(NULL);
+  if (display == NULL) {
+    fprintf(stderr, "Failed to create display\n");
+  }
   struct wl_registry *registry = wl_display_get_registry(display);
 
-  Eeyelop eeyelop = eeyelop_init();
+  Eeyelop eeyelop = eeyelop_init(display);
 
   wl_registry_add_listener(registry, &registry_listener, &eeyelop);
+  wl_display_dispatch(display);
   wl_display_roundtrip(display);
 
   if (eeyelop.compositor == NULL || eeyelop.layer_shell == NULL) {
-    printf("Missing wl_compositor or zwlr_layer_shell protocol\n");
+    fprintf(stderr, "Missing wl_compositor or zwlr_layer_shell protocol\n");
     exit(1);
   }
 
-  while (wl_display_dispatch(display) && !eeyelop.exit) {
-    break;
+  wl_display_roundtrip(display);
+
+  while (!eeyelop.exit && wl_display_dispatch(display) != -1) {
   }
 
   eeyelop_deinit(&eeyelop);
