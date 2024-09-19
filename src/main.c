@@ -1,3 +1,4 @@
+#include "ArrayList.h"
 #include "Output.h"
 #include "wayland-client-protocol.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
@@ -64,6 +65,7 @@ void handle_global_remove(void *data, struct wl_registry *_, uint32_t name) {
   for (int i = 0; i < eeyelop->outputs.len; i++) {
     Output *output = (Output *)eeyelop->outputs.items[i];
     if (output->output_info.id == name) {
+      Output *output = (Output *)array_list_remove(&eeyelop->outputs, i);
       output_deinit(output);
     }
   }

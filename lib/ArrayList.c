@@ -62,6 +62,14 @@ int array_list_append(ArrayList *array_list, void *item) {
   return 0;
 }
 
+void *array_list_remove(ArrayList *array_list, int index) {
+  for (int i = index; i < array_list->len - 1; i++) {
+    array_list->items[i] = array_list->items[i + 1];
+  }
+
+  array_list->len -= 1;
+}
+
 void array_list_deinit(ArrayList *array_list) {
   for (int i = 0; i < array_list->len; i++) {
     free(array_list->items[i]);

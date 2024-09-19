@@ -20,4 +20,6 @@ void array_list_deinit(ArrayList *);
 
 int array_list_append(ArrayList *, void *);
 
+void *array_list_remove(ArrayList *, int);
+
 #endif // ARRAY_LIST_H
