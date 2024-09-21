@@ -1,3 +1,5 @@
+#define GL_GLEXT_PROTOTYPES 1
+
 #include "ArrayList.h"
 #include "Eeyelop.h"
 #include "Egl.h"
@@ -6,6 +8,10 @@
 #include "wayland-client-protocol.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "xdg-output-client-protocol.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <GL/gl.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,8 +57,8 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
     struct zxdg_output_v1 *xdg_output = zxdg_output_manager_v1_get_xdg_output(
         eeyelop->output_manager, wl_output);
 
-    int size[2] = {500, 500};
-    EglSurface egl_surface = egl_surface_init(&eeyelop->egl, surface, size);
+    EglSurface egl_surface =
+        egl_surface_init(&eeyelop->egl, surface, (int[2]){1, 1});
 
     Output output = output_init(egl_surface, surface, layer_surface, wl_output,
                                 xdg_output, name);
@@ -60,18 +66,19 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
     zxdg_output_v1_add_listener(xdg_output, &xdg_output_listener, eeyelop);
 
     if (array_list_append(&eeyelop->outputs, &output) == -1) {
-      fprintf(stderr, "Out of memory\n");
+      printf("Out of memory\n");
       exit(1);
     };
   }
 }
 
-void handle_global_remove(void *data, struct wl_registry *_, uint32_t name) {
+void handle_global_remove(void *data, struct wl_registry *registry,
+                          uint32_t name) {
   Eeyelop *eeyelop = data;
   for (int i = 0; i < eeyelop->outputs.len; i++) {
     Output *output = (Output *)eeyelop->outputs.items[i];
     if (output->output_info.id == name) {
-      Output *output = (Output *)array_list_remove(&eeyelop->outputs, i);
+      Output *output = (Output *)array_list_swap_remove(&eeyelop->outputs, i);
       output_deinit(output);
     }
   }
@@ -82,27 +89,39 @@ static const struct wl_registry_listener registry_listener = {
     .global_remove = handle_global_remove,
 };
 
+void render(Eeyelop *eeyelop) {
+  for (int i = 0; i < eeyelop->outputs.len; i++) {
+    Output *output = (Output *)eeyelop->outputs.items[i];
+    eglMakeCurrent(output->egl_surface.display, output->egl_surface.surface,
+                   output->egl_surface.surface, output->egl_surface.context);
+    glUseProgram(eeyelop->egl.main_shader_program);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glClearColor(1, 1, 1, 1);
+    eglSwapBuffers(output->egl_surface.display, output->egl_surface.surface);
+  }
+}
+
 int main(void) {
   struct wl_display *display = wl_display_connect(NULL);
   if (display == NULL) {
-    fprintf(stderr, "Failed to create display\n");
+    printf("Failed to create display\n");
   }
   struct wl_registry *registry = wl_display_get_registry(display);
 
   Eeyelop eeyelop = eeyelop_init(display);
 
   wl_registry_add_listener(registry, &registry_listener, &eeyelop);
-  wl_display_dispatch(display);
   wl_display_roundtrip(display);
 
   if (eeyelop.compositor == NULL || eeyelop.layer_shell == NULL) {
-    fprintf(stderr, "Missing wl_compositor or zwlr_layer_shell protocol\n");
+    printf("Missing wl_compositor or zwlr_layer_shell protocol\n");
     exit(1);
   }
 
-  wl_display_roundtrip(display);
+  render(&eeyelop);
 
   while (!eeyelop.exit && wl_display_dispatch(display) != -1) {
+    render(&eeyelop);
   }
 
   eeyelop_deinit(&eeyelop);

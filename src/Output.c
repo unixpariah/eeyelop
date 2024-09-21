@@ -1,6 +1,10 @@
 #include "Egl.h"
+#include "wayland-egl-core.h"
+#include "wlr-layer-shell-unstable-v1-client-protocol.h"
+#include "xdg-output-client-protocol.h"
 #include <Eeyelop.h>
 #include <Output.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,7 +13,7 @@
 Output output_init(EglSurface egl_surface, struct wl_surface *surface,
                    struct zwlr_layer_surface_v1 *layer_surface,
                    struct wl_output *wl_output,
-                   struct zxdg_output_v1 *xdg_output, int id) {
+                   struct zxdg_output_v1 *xdg_output, unsigned int id) {
 
   OutputInfo output_info = {
       .id = id,
@@ -67,7 +71,7 @@ void xdg_output_handle_name(void *data, struct zxdg_output_v1 *xdg_output,
     }
   }
 
-  fprintf(stderr, "Output not found\n");
+  printf("Output not found\n");
   exit(1);
 }
 
@@ -88,7 +92,7 @@ void xdg_output_handle_description(void *data,
     }
   }
 
-  fprintf(stderr, "Output not found\n");
+  printf("Output not found\n");
   exit(1);
 }
 
@@ -107,7 +111,7 @@ void xdg_output_handle_logical_size(void *data,
     }
   }
 
-  fprintf(stderr, "Output not found\n");
+  printf("Output not found\n");
   exit(1);
 }
 
@@ -126,7 +130,7 @@ void xdg_output_handle_logical_position(void *data,
     }
   }
 
-  fprintf(stderr, "Output not found\n");
+  printf("Output not found\n");
   exit(1);
 }
 
@@ -150,6 +154,8 @@ void zwlr_layer_surface_handle_configure(
     if (output->layer_surface == layer_surface) {
       zwlr_layer_surface_v1_set_size(output->layer_surface, width, height);
       zwlr_layer_surface_v1_ack_configure(output->layer_surface, serial);
+      wl_egl_window_resize(output->egl_surface.window, (int)width, (int)height,
+                           output->output_info.x, output->output_info.y);
     }
   }
 }

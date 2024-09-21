@@ -1,12 +1,13 @@
 #ifndef EGL_H
 #define EGL_H
 
-#include "wayland-client-core.h"
+#include "GL/gl.h"
 #include "wayland-egl-core.h"
 #include <EGL/egl.h>
 
 typedef struct {
-  int main_shader_program;
+  GLuint main_shader_program;
+  GLuint VBO;
   EGLDisplay display;
   EGLConfig config;
   EGLContext context;
@@ -22,7 +23,7 @@ typedef struct {
   EGLDisplay *display;
   EGLConfig *config;
   EGLContext *context;
-  int *main_shader_program;
+  GLuint *main_shader_program;
 } EglSurface;
 
 EglSurface egl_surface_init(Egl *, struct wl_surface *, int[2]);

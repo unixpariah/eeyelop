@@ -1,6 +1,11 @@
+#include "ArrayList.h"
+#include "wayland-client-protocol.h"
+#include "wlr-layer-shell-unstable-v1-client-protocol.h"
+#include "xdg-output-client-protocol.h"
 #include <Eeyelop.h>
 #include <Egl.h>
 #include <Output.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -16,7 +21,7 @@ Eeyelop eeyelop_init(struct wl_display *display) {
   };
 
   if (egl_init(&eeyelop.egl, display) == -1) {
-    fprintf(stderr, "Failed to initialize egl\n");
+    printf("Failed to initialize egl\n");
     exit(1);
   };
 

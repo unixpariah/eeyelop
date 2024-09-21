@@ -3,9 +3,7 @@
 
 #include <ArrayList.h>
 #include <Egl.h>
-#include <wayland-client-protocol.h>
-#include <wlr-layer-shell-unstable-v1-client-protocol.h>
-#include <xdg-output-client-protocol.h>
+#include <stdbool.h>
 
 typedef struct {
   struct wl_compositor *compositor;
@@ -15,7 +13,7 @@ typedef struct {
   ArrayList outputs;
   Egl egl;
   bool exit;
-} Eeyelop;
+} __attribute__((aligned(128))) Eeyelop;
 
 Eeyelop eeyelop_init(struct wl_display *display);
 

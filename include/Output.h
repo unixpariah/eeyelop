@@ -2,17 +2,16 @@
 #define OUTPUT_H
 
 #include "Egl.h"
-#include <stdint.h>
 
 typedef struct {
   uint32_t id;
-  char *name;
-  char *description;
   int height;
   int width;
   int x;
   int y;
-} OutputInfo;
+  char *name;
+  char *description;
+} __attribute__((aligned(64))) OutputInfo;
 
 void output_info_deinit(OutputInfo *);
 
@@ -23,11 +22,11 @@ typedef struct {
   struct zwlr_layer_surface_v1 *layer_surface;
   struct zxdg_output_v1 *xdg_output;
   struct wl_output *wl_output;
-} Output;
+} __attribute__((aligned(128))) Output;
 
 Output output_init(EglSurface, struct wl_surface *,
                    struct zwlr_layer_surface_v1 *, struct wl_output *,
-                   struct zxdg_output_v1 *, int);
+                   struct zxdg_output_v1 *, unsigned int);
 
 void output_deinit(Output *);
 
