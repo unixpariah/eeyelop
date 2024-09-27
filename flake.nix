@@ -27,6 +27,7 @@
           packages = with pkgs; [
             pkg-config
             wayland
+            wayland-scanner
             wayland-protocols
             libxkbcommon
             lua

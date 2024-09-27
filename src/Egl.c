@@ -38,11 +38,10 @@ int compile_shader(const char *shader_source, GLuint shader,
 }
 
 int egl_init(Egl *egl, struct wl_display *display) {
-  if (eglBindAPI(EGL_OPENGL_API) == 0) {
+  if (eglBindAPI(EGL_OPENGL_API) != EGL_TRUE) {
     return -1;
   }
   egl->display = eglGetPlatformDisplay(EGL_PLATFORM_WAYLAND_EXT, display, NULL);
-
   if (egl->display == EGL_NO_DISPLAY) {
     return -1;
   }
@@ -53,8 +52,9 @@ int egl_init(Egl *egl, struct wl_display *display) {
     return -1;
   }
 
-  EGLConfig egl_config = NULL;
-  int n_config = 0;
+  EGLint count = 0;
+  eglGetConfigs(egl->display, NULL, 0, &count);
+
   // clang-format off
   EGLint config_attribs[] = {
       EGL_SURFACE_TYPE,    EGL_WINDOW_BIT,
@@ -66,10 +66,13 @@ int egl_init(Egl *egl, struct wl_display *display) {
       EGL_NONE
   };
   // clang-format on
-  if (eglChooseConfig(egl->display, config_attribs, &egl_config, 1,
-                      &n_config) != EGL_TRUE) {
+  EGLint n = 0;
+  EGLConfig *configs = calloc(count, sizeof(EGLConfig));
+  eglChooseConfig(egl->display, config_attribs, configs, count, &n);
+  if (n == 0) {
     return -1;
   }
+  egl->config = configs[0];
 
   // clang-format off
   EGLint context_attribs[] = {
@@ -81,54 +84,48 @@ int egl_init(Egl *egl, struct wl_display *display) {
   };
   // clang-format on
 
-  EGLContext egl_context = eglCreateContext(egl->display, egl_config,
-                                            EGL_NO_CONTEXT, context_attribs);
-  if (egl_context == NULL) {
+  egl->context = eglCreateContext(egl->display, egl->config, EGL_NO_CONTEXT,
+                                  context_attribs);
+  if (egl->context == EGL_NO_CONTEXT) {
     return -1;
   }
 
-  if (eglMakeCurrent(egl->display, EGL_NO_SURFACE, EGL_NO_SURFACE,
-                     egl_context) != EGL_TRUE) {
+  glEnable(GL_DEBUG_OUTPUT);
+  glDebugMessageCallback(gl_message_callback, NULL);
+
+  if (!eglMakeCurrent(egl->display, EGL_NO_SURFACE, EGL_NO_SURFACE,
+                      egl->context)) {
     return -1;
   }
 
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  glEnable(GL_DEBUG_OUTPUT);
-  glDebugMessageCallback(gl_message_callback, NULL);
-
   GLuint main_vertex_shader = glCreateShader(GL_VERTEX_SHADER);
   GLuint main_fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
 
-  GLuint main_shader_program = glCreateProgram();
+  egl->main_shader_program = glCreateProgram();
 
   if (compile_shader(vertex_shader_source, main_vertex_shader,
-                     main_shader_program) == -1) {
+                     egl->main_shader_program) == -1) {
     return -1;
   }
 
   if (compile_shader(fragment_shader_source, main_fragment_shader,
-                     main_shader_program) == -1) {
+                     egl->main_shader_program) == -1) {
     return -1;
   }
 
-  glLinkProgram(main_shader_program);
+  glLinkProgram(egl->main_shader_program);
 
   int link_success = 0;
-  glGetProgramiv(main_shader_program, GL_LINK_STATUS, &link_success);
+  glGetProgramiv(egl->main_shader_program, GL_LINK_STATUS, &link_success);
   if (link_success != GL_TRUE) {
     GLchar info_log[512];
-    glGetShaderInfoLog(main_shader_program, 512, NULL, info_log);
+    glGetShaderInfoLog(egl->main_shader_program, 512, NULL, info_log);
     printf("%s\n", info_log);
     return -1;
   }
-
-  egl->config = egl_config;
-  egl->context = egl_context;
-  egl->main_shader_program = main_shader_program;
-
-  glGenBuffers(1, &egl->VBO);
 
   glDeleteShader(main_vertex_shader);
   glDeleteShader(main_fragment_shader);
@@ -154,20 +151,23 @@ int egl_deinit(Egl *egl) {
   return 0;
 }
 
-EglSurface egl_surface_init(Egl *egl, struct wl_surface *surface, int size[2]) {
+EglSurface egl_surface_init(Egl *egl, struct wl_surface *wl_surface,
+                            int size[2]) {
   struct wl_egl_window *egl_window =
-      wl_egl_window_create(surface, size[0], size[1]);
+      wl_egl_window_create(wl_surface, size[0], size[1]);
 
+  EGLSurface surface = eglCreatePlatformWindowSurface(egl->display, egl->config,
+                                                      egl_window, NULL);
   EglSurface egl_surface = {
       .window = egl_window,
-      .surface = eglCreatePlatformWindowSurface(egl->display, egl->config,
-                                                egl_window, NULL),
+      .surface = surface,
       .display = &egl->display,
       .config = &egl->config,
+      .context = &egl->context,
       .main_shader_program = &egl->main_shader_program,
   };
 
-  if (egl_surface.window == NULL || egl_surface.surface == NULL) {
+  if (egl_surface.window == NULL || egl_surface.surface == EGL_NO_SURFACE) {
     printf("Failed to create egl window or surface");
     exit(1);
   }

@@ -27,24 +27,28 @@ Output output_init(EglSurface egl_surface, struct wl_surface *surface,
 
   Output output = {
       .wl_output = wl_output,
-      .output_info = output_info,
+      .info = output_info,
       .surface = surface,
       .layer_surface = layer_surface,
       .xdg_output = xdg_output,
-      .egl_surface = egl_surface,
+      .egl = egl_surface,
 
   };
 
   return output;
 }
 
+int output_is_configured(Output *output) {
+  return output->info.width > 0 && output->info.height > 0;
+}
+
 void output_deinit(Output *output) {
   wl_surface_destroy(output->surface);
   zwlr_layer_surface_v1_destroy(output->layer_surface);
   zxdg_output_v1_destroy(output->xdg_output);
-  output_info_deinit(&output->output_info);
+  output_info_deinit(&output->info);
   wl_output_release(output->wl_output);
-  egl_surface_deinit(&output->egl_surface);
+  egl_surface_deinit(&output->egl);
 }
 
 void output_info_deinit(OutputInfo *output_info) {
@@ -65,8 +69,8 @@ void xdg_output_handle_name(void *data, struct zxdg_output_v1 *xdg_output,
     Output *output = (Output *)eeyelop->outputs.items[i];
 
     if (output->xdg_output == xdg_output) {
-      output->output_info.name = malloc(strlen(name) + 1);
-      strncpy(output->output_info.name, name, strlen(name));
+      output->info.name = malloc(strlen(name) + 1);
+      strncpy(output->info.name, name, strlen(name));
       return;
     }
   }
@@ -85,9 +89,8 @@ void xdg_output_handle_description(void *data,
     Output *output = (Output *)eeyelop->outputs.items[i];
 
     if (output->xdg_output == xdg_output) {
-      output->output_info.description = malloc(strlen(description) + 1);
-      strncpy(output->output_info.description, description,
-              strlen(description));
+      output->info.description = malloc(strlen(description) + 1);
+      strncpy(output->info.description, description, strlen(description));
       return;
     }
   }
@@ -105,8 +108,8 @@ void xdg_output_handle_logical_size(void *data,
     Output *output = (Output *)eeyelop->outputs.items[i];
 
     if (output->xdg_output == xdg_output) {
-      output->output_info.width = width;
-      output->output_info.height = height;
+      output->info.width = width;
+      output->info.height = height;
       return;
     }
   }
@@ -124,8 +127,8 @@ void xdg_output_handle_logical_position(void *data,
     Output *output = (Output *)eeyelop->outputs.items[i];
 
     if (output->xdg_output == xdg_output) {
-      output->output_info.x = x;
-      output->output_info.y = y;
+      output->info.x = x;
+      output->info.y = y;
       return;
     }
   }
@@ -154,8 +157,8 @@ void zwlr_layer_surface_handle_configure(
     if (output->layer_surface == layer_surface) {
       zwlr_layer_surface_v1_set_size(output->layer_surface, width, height);
       zwlr_layer_surface_v1_ack_configure(output->layer_surface, serial);
-      wl_egl_window_resize(output->egl_surface.window, (int)width, (int)height,
-                           output->output_info.x, output->output_info.y);
+      wl_egl_window_resize(output->egl.window, (int)width, (int)height,
+                           output->info.x, output->info.y);
     }
   }
 }

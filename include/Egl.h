@@ -7,7 +7,6 @@
 
 typedef struct {
   GLuint main_shader_program;
-  GLuint VBO;
   EGLDisplay display;
   EGLConfig config;
   EGLContext context;

@@ -9,7 +9,6 @@ typedef struct {
   struct wl_compositor *compositor;
   struct zwlr_layer_shell_v1 *layer_shell;
   struct zxdg_output_manager_v1 *output_manager;
-  struct wl_seat *seat;
   ArrayList outputs;
   Egl egl;
   bool exit;

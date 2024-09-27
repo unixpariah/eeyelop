@@ -102,13 +102,9 @@ pub fn build(b: *std.Build) !void {
     try genWaylandProtocol(alloc, wayland_scanner, xdg_output_protocol, "xdg-output-client-protocol");
 
     exe.linkSystemLibrary("wayland-client");
-    exe.linkSystemLibrary("xkbcommon");
     exe.linkSystemLibrary("wayland-egl");
-    exe.linkSystemLibrary("lua");
     exe.linkSystemLibrary("egl");
     exe.linkSystemLibrary("gl");
-    exe.linkSystemLibrary("freetype2");
-    exe.linkSystemLibrary("fontconfig");
 
     b.installArtifact(exe);
 
