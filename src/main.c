@@ -1,3 +1,4 @@
+#include "EGL/eglplatform.h"
 #define GL_GLEXT_PROTOTYPES 1
 
 #include "ArrayList.h"
@@ -25,6 +26,10 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
   } else if (strcmp(interface, zwlr_layer_shell_v1_interface.name) == 0) {
     eeyelop->layer_shell = wl_registry_bind(
         registry, name, &zwlr_layer_shell_v1_interface, version);
+  } else if (strcmp(interface, wl_seat_interface.name) == 0) {
+    eeyelop->seat.seat =
+        wl_registry_bind(registry, name, &wl_seat_interface, 3);
+    wl_seat_add_listener(eeyelop->seat.seat, &seat_listener, &eeyelop->seat);
   } else if (strcmp(interface, zxdg_output_manager_v1_interface.name) == 0) {
     eeyelop->output_manager = wl_registry_bind(
         registry, name, &zxdg_output_manager_v1_interface, version);
@@ -37,10 +42,10 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
 
     struct zwlr_layer_surface_v1 *layer_surface =
         zwlr_layer_shell_v1_get_layer_surface(eeyelop->layer_shell, surface,
-                                              wl_output, 3, "eeyelop");
+                                              NULL, 3, "eeyelop");
 
-    zwlr_layer_surface_v1_add_listener(layer_surface,
-                                       &zwlr_layer_surface_listener, eeyelop);
+    zwlr_layer_surface_v1_add_listener(layer_surface, &layer_surface_listener,
+                                       eeyelop);
 
     zwlr_layer_surface_v1_set_anchor(layer_surface,
                                      ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP |
@@ -60,7 +65,7 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
     Output output = output_init(egl_surface, surface, layer_surface, wl_output,
                                 xdg_output, name);
 
-    zxdg_output_v1_add_listener(xdg_output, &xdg_output_listener, eeyelop);
+    zxdg_output_v1_add_listener(xdg_output, &output_listener, eeyelop);
 
     wl_surface_commit(surface);
 
@@ -91,7 +96,8 @@ static const struct wl_registry_listener registry_listener = {
 int render(Eeyelop *eeyelop) {
   for (int i = 0; i < eeyelop->outputs.len; i++) {
     Output *output = (Output *)eeyelop->outputs.items[i];
-    if (!output_is_configured(output)) {
+    if (!output_is_configured(output) ||
+        strcmp(output->info.name, eeyelop->config.output) != 0) {
       continue;
     }
 
@@ -101,7 +107,7 @@ int render(Eeyelop *eeyelop) {
     };
 
     glClear(GL_COLOR_BUFFER_BIT);
-    glClearColor(0, 0, 0, (float)0.5);
+    glClearColor(0, 0, 0, 1);
 
     if (!eglSwapBuffers(*output->egl.display, output->egl.surface)) {
       return -1;
@@ -113,7 +119,7 @@ int render(Eeyelop *eeyelop) {
 
 int main(void) {
   struct wl_display *display = wl_display_connect(NULL);
-  if (display == NULL) {
+  if (!display) {
     printf("Failed to create display\n");
   }
 
@@ -125,8 +131,8 @@ int main(void) {
   wl_display_dispatch(display);
   wl_display_roundtrip(display);
 
-  if (eeyelop.compositor == NULL || eeyelop.layer_shell == NULL) {
-    printf("Missing wl_compositor or zwlr_layer_shell protocol\n");
+  if (!eeyelop.layer_shell) {
+    printf("wlr_layer_shell protocol unsupported\n");
     return EXIT_FAILURE;
   }
 
@@ -144,9 +150,9 @@ int main(void) {
     };
   }
 
-  // eeyelop_deinit(&eeyelop);
-  // wl_registry_destroy(registry);
-  // wl_display_disconnect(display);
+  eeyelop_deinit(&eeyelop);
+  wl_registry_destroy(registry);
+  wl_display_disconnect(display);
 
   return 0;
 }

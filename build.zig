@@ -67,6 +67,8 @@ pub fn build(b: *std.Build) !void {
         "src/main.c",
         "src/Eeyelop.c",
         "src/Egl.c",
+        "src/Config.c",
+        "src/Seat.c",
     }, .flags = &[_][]const u8{
         "-std=c11",
         "-pedantic",

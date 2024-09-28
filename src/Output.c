@@ -1,8 +1,10 @@
+#include "Config.h"
 #include "Egl.h"
 #include "wayland-egl-core.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "xdg-output-client-protocol.h"
 #include <Eeyelop.h>
+#include <GLES2/gl2.h>
 #include <Output.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -32,7 +34,6 @@ Output output_init(EglSurface egl_surface, struct wl_surface *surface,
       .layer_surface = layer_surface,
       .xdg_output = xdg_output,
       .egl = egl_surface,
-
   };
 
   return output;
@@ -61,8 +62,8 @@ void output_info_deinit(OutputInfo *output_info) {
   output_info->height = 0;
 }
 
-void xdg_output_handle_name(void *data, struct zxdg_output_v1 *xdg_output,
-                            const char *name) {
+void output_handle_name(void *data, struct zxdg_output_v1 *xdg_output,
+                        const char *name) {
   Eeyelop *eeyelop = data;
 
   for (int i = 0; i < eeyelop->outputs.len; i++) {
@@ -74,14 +75,10 @@ void xdg_output_handle_name(void *data, struct zxdg_output_v1 *xdg_output,
       return;
     }
   }
-
-  printf("Output not found\n");
-  exit(1);
 }
 
-void xdg_output_handle_description(void *data,
-                                   struct zxdg_output_v1 *xdg_output,
-                                   const char *description) {
+void output_handle_description(void *data, struct zxdg_output_v1 *xdg_output,
+                               const char *description) {
 
   Eeyelop *eeyelop = data;
 
@@ -94,14 +91,10 @@ void xdg_output_handle_description(void *data,
       return;
     }
   }
-
-  printf("Output not found\n");
-  exit(1);
 }
 
-void xdg_output_handle_logical_size(void *data,
-                                    struct zxdg_output_v1 *xdg_output,
-                                    int32_t width, int32_t height) {
+void output_handle_logical_size(void *data, struct zxdg_output_v1 *xdg_output,
+                                int32_t width, int32_t height) {
 
   Eeyelop *eeyelop = data;
   for (int i = 0; i < eeyelop->outputs.len; i++) {
@@ -113,14 +106,11 @@ void xdg_output_handle_logical_size(void *data,
       return;
     }
   }
-
-  printf("Output not found\n");
-  exit(1);
 }
 
-void xdg_output_handle_logical_position(void *data,
-                                        struct zxdg_output_v1 *xdg_output,
-                                        int32_t x, int32_t y) {
+void output_handle_logical_position(void *data,
+                                    struct zxdg_output_v1 *xdg_output,
+                                    int32_t x, int32_t y) {
 
   Eeyelop *eeyelop = data;
   for (int i = 0; i < eeyelop->outputs.len; i++) {
@@ -132,41 +122,43 @@ void xdg_output_handle_logical_position(void *data,
       return;
     }
   }
-
-  printf("Output not found\n");
-  exit(1);
 }
 
-void xdg_output_handle_done(void *data, struct zxdg_output_v1 *xdg_output) {}
+void output_handle_done(void *data, struct zxdg_output_v1 *xdg_output) {}
 
-const struct zxdg_output_v1_listener xdg_output_listener = {
-    .name = xdg_output_handle_name,
-    .description = xdg_output_handle_description,
-    .logical_size = xdg_output_handle_logical_size,
-    .logical_position = xdg_output_handle_logical_position,
-    .done = xdg_output_handle_done,
+const struct zxdg_output_v1_listener output_listener = {
+    .name = output_handle_name,
+    .description = output_handle_description,
+    .logical_size = output_handle_logical_size,
+    .logical_position = output_handle_logical_position,
+    .done = output_handle_done,
 };
 
-void zwlr_layer_surface_handle_configure(
-    void *data, struct zwlr_layer_surface_v1 *layer_surface, uint32_t serial,
-    uint32_t width, uint32_t height) {
+void layer_surface_handle_configure(void *data,
+                                    struct zwlr_layer_surface_v1 *layer_surface,
+                                    uint32_t serial, uint32_t width,
+                                    uint32_t height) {
   Eeyelop *eeyelop = data;
 
   for (int i = 0; i < eeyelop->outputs.len; i++) {
     Output *output = (Output *)eeyelop->outputs.items[i];
     if (output->layer_surface == layer_surface) {
-      zwlr_layer_surface_v1_set_size(output->layer_surface, width, height);
+      config_update(&eeyelop->config, output);
       zwlr_layer_surface_v1_ack_configure(output->layer_surface, serial);
-      wl_egl_window_resize(output->egl.window, (int)width, (int)height,
-                           output->info.x, output->info.y);
+
+      int vertices[8] = {};
+
+      glBindBuffer(GL_ARRAY_BUFFER, eeyelop->egl.VBO);
+      glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices,
+                   GL_STATIC_DRAW);
     }
   }
 }
 
-void zwlr_layer_surface_handle_closed(
-    void *data, struct zwlr_layer_surface_v1 *layer_surface) {}
+void layer_surface_handle_closed(void *data,
+                                 struct zwlr_layer_surface_v1 *layer_surface) {}
 
-const struct zwlr_layer_surface_v1_listener zwlr_layer_surface_listener = {
-    .configure = zwlr_layer_surface_handle_configure,
-    .closed = zwlr_layer_surface_handle_closed,
+const struct zwlr_layer_surface_v1_listener layer_surface_listener = {
+    .configure = layer_surface_handle_configure,
+    .closed = layer_surface_handle_closed,
 };

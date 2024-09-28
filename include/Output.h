@@ -32,8 +32,8 @@ void output_deinit(Output *);
 
 int output_is_configured(Output *);
 
-extern const struct zxdg_output_v1_listener xdg_output_listener;
+extern const struct zxdg_output_v1_listener output_listener;
 
-extern const struct zwlr_layer_surface_v1_listener zwlr_layer_surface_listener;
+extern const struct zwlr_layer_surface_v1_listener layer_surface_listener;
 
 #endif // OUTPUT_H

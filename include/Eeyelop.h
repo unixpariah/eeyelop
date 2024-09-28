@@ -2,7 +2,9 @@
 #define EEYELOP_H
 
 #include <ArrayList.h>
+#include <Config.h>
 #include <Egl.h>
+#include <Seat.h>
 #include <stdbool.h>
 
 typedef struct {
@@ -12,7 +14,9 @@ typedef struct {
   ArrayList outputs;
   Egl egl;
   bool exit;
-} __attribute__((aligned(128))) Eeyelop;
+  Config config;
+  Seat seat;
+} Eeyelop;
 
 Eeyelop eeyelop_init(struct wl_display *display);
 

@@ -6,6 +6,7 @@
 #include <EGL/egl.h>
 
 typedef struct {
+  GLuint VBO;
   GLuint main_shader_program;
   EGLDisplay display;
   EGLConfig config;

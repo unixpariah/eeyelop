@@ -1,4 +1,5 @@
 #include "ArrayList.h"
+#include "stdio.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,7 +31,7 @@ int array_list_ensure_total_capacity_precise(ArrayList *array_list,
   }
 
   for (int i = array_list->len; i < array_list->capacity; i++) {
-    array_list->items[i] = 0;
+    new_items[i] = 0;
   }
 
   array_list->capacity = new_capacity;
