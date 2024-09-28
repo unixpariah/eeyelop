@@ -1,6 +1,8 @@
 #include <Config.h>
+#include <Output.h>
 #include <stdint.h>
 #include <wayland-client-protocol.h>
+#include <wayland-egl-core.h>
 #include <wlr-layer-shell-unstable-v1-client-protocol.h>
 
 Config config_init(void) {

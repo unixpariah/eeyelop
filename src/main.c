@@ -1,11 +1,12 @@
-#include "EGL/eglplatform.h"
-#include "Seat.h"
 #define GL_GLEXT_PROTOTYPES 1
 
 #include "ArrayList.h"
+#include "EGL/eglplatform.h"
 #include "Eeyelop.h"
 #include "Egl.h"
+#include "GL/glext.h"
 #include "Output.h"
+#include "Seat.h"
 #include "wayland-client-core.h"
 #include "wayland-client-protocol.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
@@ -111,10 +112,10 @@ int render(Eeyelop *eeyelop) {
 
     glUseProgram(eeyelop->egl.main_shader_program);
     glClear(GL_COLOR_BUFFER_BIT);
-    glClearColor(1, 0, 0, 1);
+    glClearColor(0, 0, 0, 0);
 
     glBindBuffer(GL_ARRAY_BUFFER, eeyelop->egl.VBO);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+    glVertexAttribPointer(0, 2, GL_INT, GL_FALSE, 0, NULL);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
 
     if (!eglSwapBuffers(*output->egl.display, output->egl.surface)) {
@@ -151,7 +152,7 @@ int main(void) {
     return EXIT_FAILURE;
   };
 
-  while (!eeyelop.exit && wl_display_dispatch(display) != -1) {
+  while (wl_display_dispatch(display) != -1) {
     if (render(&eeyelop) == -1) {
       EGLint error = eglGetError();
       printf("Failed to render with error: 0x%x\n", error);

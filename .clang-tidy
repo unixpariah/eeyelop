@@ -1,4 +1,4 @@
-Checks:          '*, -clang-diagnostic-*, -cppcoreguidelines-avoid-magic-numbers, -readability-magic-numbers, -readability-identifier-length, -hicpp-signed-bitwise, -bugprone-easily-swappable-parameters, -altera-unroll-loops, -altera-id-dependent-backward-branch, -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling -altera-struct-pack-align'
+Checks:          '*, -clang-diagnostic-*, -cppcoreguidelines-avoid-magic-numbers, -readability-magic-numbers, -readability-identifier-length, -hicpp-signed-bitwise, -bugprone-easily-swappable-parameters, -altera-unroll-loops, -altera-id-dependent-backward-branch, -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling, -altera-struct-pack-align'
 WarningsAsErrors: ''
 ExtraArgs:
   - '-std=c11'

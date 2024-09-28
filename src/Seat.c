@@ -4,6 +4,13 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-prototypes"
+
+static void noop() {}
+
+#pragma GCC diagnostic pop
+
 Seat seat_init(void) {
   Seat seat = {
       .pointer = NULL,
@@ -40,13 +47,6 @@ void pointer_handle_button(void *data, struct wl_pointer *pointer,
                            uint32_t button_state) {
   printf("New button state %d\n", button_state);
 }
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstrict-prototypes"
-
-static void noop() {}
-
-#pragma GCC diagnostic pop
 
 const struct wl_pointer_listener pointer_listener = {
     .axis = noop,

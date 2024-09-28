@@ -121,10 +121,10 @@ void layer_surface_handle_configure(void *data,
 
       // clang-format off
       int vertices[8] = {
-          0,                     0,
-          eeyelop->config.width, 0,
-          0,                     eeyelop->config.height,
-          eeyelop->config.width, eeyelop->config.height,
+          -1, -1,
+          1, -1,
+          -1, 1,
+          1, 1,
       };
       // clang-format on
 

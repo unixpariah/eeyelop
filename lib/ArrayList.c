@@ -24,8 +24,8 @@ int grow_capacity(int current, int minimum) {
 
 int array_list_ensure_total_capacity_precise(ArrayList *array_list,
                                              int new_capacity) {
-  void **new_items =
-      (void **)realloc(array_list->items, new_capacity * sizeof(void *));
+  void **new_items = (void **)realloc((void *)array_list->items,
+                                      new_capacity * sizeof(void *));
   if (!new_items) {
     return -1;
   }

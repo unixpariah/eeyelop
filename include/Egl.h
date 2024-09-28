@@ -6,8 +6,8 @@
 #include <EGL/egl.h>
 
 typedef struct {
+  GLuint VAO;
   GLuint VBO;
-  GLuint UBO;
   GLuint EBO;
   GLuint main_shader_program;
   EGLDisplay display;

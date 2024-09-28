@@ -67,7 +67,7 @@ int egl_init(Egl *egl, struct wl_display *display) {
   };
   // clang-format on
   EGLint n = 0;
-  EGLConfig *configs = calloc(count, sizeof(EGLConfig));
+  EGLConfig *configs = (void **)calloc(count, sizeof(EGLConfig));
   eglChooseConfig(egl->display, config_attribs, configs, count, &n);
   if (n == 0) {
     return -1;
@@ -130,8 +130,11 @@ int egl_init(Egl *egl, struct wl_display *display) {
   glDeleteShader(main_vertex_shader);
   glDeleteShader(main_fragment_shader);
 
+  glGenVertexArrays(1, &egl->VAO);
+  glBindVertexArray(egl->VAO);
+  glEnableVertexAttribArray(0);
+
   glGenBuffers(1, &egl->VBO);
-  glGenBuffers(1, &egl->UBO);
   glGenBuffers(1, &egl->EBO);
 
   // clang-format off
@@ -144,8 +147,6 @@ int egl_init(Egl *egl, struct wl_display *display) {
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, egl->EBO);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), &indices,
                GL_STATIC_DRAW);
-
-  glEnableVertexAttribArray(0);
 
   return 0;
 }
@@ -164,6 +165,10 @@ int egl_deinit(Egl *egl) {
     glDeleteProgram(egl->main_shader_program);
     egl->main_shader_program = 0;
   }
+
+  glDeleteBuffers(1, &egl->VAO);
+  glDeleteBuffers(1, &egl->VBO);
+  glDeleteBuffers(1, &egl->EBO);
 
   return 0;
 }

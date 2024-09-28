@@ -13,7 +13,6 @@ typedef struct {
   struct zxdg_output_manager_v1 *output_manager;
   ArrayList outputs;
   Egl egl;
-  bool exit;
   Config config;
   Seat seat;
 } Eeyelop;

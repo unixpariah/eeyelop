@@ -1,18 +1,18 @@
-#include "Seat.h"
 #define GL_GLEXT_PROTOTYPES 1
 
-#include "ArrayList.h"
 #include "EGL/egl.h"
-#include "wayland-client-protocol.h"
-#include "wlr-layer-shell-unstable-v1-client-protocol.h"
-#include "xdg-output-client-protocol.h"
+#include "EGL/eglplatform.h"
+#include <ArrayList.h>
 #include <Config.h>
 #include <Eeyelop.h>
 #include <Egl.h>
 #include <Output.h>
-#include <stdbool.h>
+#include <Seat.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <wayland-client-protocol.h>
+#include <wlr-layer-shell-unstable-v1-client-protocol.h>
+#include <xdg-output-client-protocol.h>
 
 Eeyelop eeyelop_init(struct wl_display *display) {
   Eeyelop eeyelop = {
@@ -20,34 +20,15 @@ Eeyelop eeyelop_init(struct wl_display *display) {
       .layer_shell = NULL,
       .output_manager = NULL,
       .outputs = array_list_init(sizeof(Output)),
-      .exit = false,
       .config = config_init(),
       .seat = seat_init(),
   };
 
-  if (egl_init(&eeyelop.egl, display) == -1) {
+  if (egl_init(&eeyelop.egl, display) == 1) {
     EGLint error = eglGetError();
     printf("Failed to initialize egl with error: 0x%x\n", error);
     exit(1);
   };
-
-  struct {
-    Mat4 projection;
-  } uniform_object;
-
-  math_orthographic_projection(&uniform_object.projection, 0,
-                               (float)eeyelop.config.width, 0,
-                               (float)eeyelop.config.height);
-
-  glBindBuffer(GL_UNIFORM_BUFFER, eeyelop.egl.UBO);
-  glBufferData(GL_UNIFORM_BUFFER, sizeof(uniform_object), &uniform_object,
-               GL_STATIC_DRAW);
-
-  glBindBufferBase(GL_UNIFORM_BUFFER, 0, eeyelop.egl.UBO);
-  glUniformBlockBinding(
-      eeyelop.egl.main_shader_program,
-      glGetUniformBlockIndex(eeyelop.egl.main_shader_program, "UniformBlock"),
-      0);
 
   return eeyelop;
 }

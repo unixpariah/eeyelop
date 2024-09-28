@@ -57,9 +57,6 @@ pub fn build(b: *std.Build) !void {
     exe.addLibraryPath(b.path("lib"));
 
     const source_files = &[_][]const u8{
-        "lib/xdg-shell-client-protocol.c",
-        "lib/xdg-output-client-protocol.c",
-        "lib/wlr-layer-shell-unstable-v1-client-protocol.c",
         "lib/ArrayList.c",
         "src/Output.c",
         "src/main.c",
@@ -68,6 +65,12 @@ pub fn build(b: *std.Build) !void {
         "src/Config.c",
         "src/Seat.c",
         "src/math.c",
+    };
+
+    const protocol_files = &[_][]const u8{
+        "lib/xdg-shell-client-protocol.c",
+        "lib/xdg-output-client-protocol.c",
+        "lib/wlr-layer-shell-unstable-v1-client-protocol.c",
     };
 
     const flags = &[_][]const u8{
@@ -81,7 +84,7 @@ pub fn build(b: *std.Build) !void {
     };
 
     exe.addCSourceFiles(.{
-        .files = source_files,
+        .files = source_files ++ protocol_files,
         .flags = flags,
     });
 
@@ -121,7 +124,11 @@ pub fn build(b: *std.Build) !void {
     const run_step = b.step("run", "Run");
     run_step.dependOn(&run_cmd.step);
 
-    const cmd = b.addSystemCommand(.{"clang-tidy"} ++ source_files);
+    const clang_tidy_cmd = b.addSystemCommand(.{"clang-tidy"} ++ source_files);
     const tidy_step = b.step("tidy", "Run clang-tidy");
-    tidy_step.dependOn(&cmd.step);
+    tidy_step.dependOn(&clang_tidy_cmd.step);
+
+    const valgrind_cmd = b.addSystemCommand(&.{ "valgrind", "./zig-out/bin/eeylop" });
+    const valgrind_step = b.step("valgrind", "Run valgrind");
+    valgrind_step.dependOn(&valgrind_cmd.step);
 }
