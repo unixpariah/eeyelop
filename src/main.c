@@ -109,13 +109,13 @@ int render(Eeyelop *eeyelop) {
       return -1;
     };
 
-    // glUseProgram(eeyelop->egl.main_shader_program);
+    glUseProgram(eeyelop->egl.main_shader_program);
     glClear(GL_COLOR_BUFFER_BIT);
     glClearColor(1, 0, 0, 1);
 
-    // glBindBuffer(GL_ARRAY_BUFFER, eeyelop->egl.VBO);
-    // glVertexAttribPointer(0, 2, GL_INT, GL_FALSE, 0, NULL);
-    // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+    glBindBuffer(GL_ARRAY_BUFFER, eeyelop->egl.VBO);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
 
     if (!eglSwapBuffers(*output->egl.display, output->egl.surface)) {
       return -1;

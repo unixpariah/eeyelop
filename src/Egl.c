@@ -90,13 +90,13 @@ int egl_init(Egl *egl, struct wl_display *display) {
     return -1;
   }
 
-  glEnable(GL_DEBUG_OUTPUT);
-  glDebugMessageCallback(gl_message_callback, NULL);
-
   if (!eglMakeCurrent(egl->display, EGL_NO_SURFACE, EGL_NO_SURFACE,
                       egl->context)) {
     return -1;
   }
+
+  glEnable(GL_DEBUG_OUTPUT);
+  glDebugMessageCallback(gl_message_callback, NULL);
 
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -132,6 +132,20 @@ int egl_init(Egl *egl, struct wl_display *display) {
 
   glGenBuffers(1, &egl->VBO);
   glGenBuffers(1, &egl->UBO);
+  glGenBuffers(1, &egl->EBO);
+
+  // clang-format off
+  int indices[6] = {
+      0, 1, 3,
+      3, 2, 0,
+  };
+  // clang-format on
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, egl->EBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), &indices,
+               GL_STATIC_DRAW);
+
+  glEnableVertexAttribArray(0);
 
   return 0;
 }

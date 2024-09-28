@@ -1,7 +1,7 @@
-#include "wayland-client-protocol.h"
-#include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include <Config.h>
 #include <stdint.h>
+#include <wayland-client-protocol.h>
+#include <wlr-layer-shell-unstable-v1-client-protocol.h>
 
 Config config_init(void) {
   Config config = {
@@ -14,7 +14,7 @@ Config config_init(void) {
               .left = 10,
               .top = 10,
           },
-      .output = "HDMI-A-1",
+      .output = "eDP-1",
       .anchor = top_right,
       .layer = overlay,
   };

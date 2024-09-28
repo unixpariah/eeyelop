@@ -2,7 +2,6 @@
 
 void math_orthographic_projection(Mat4 *mat4, float left, float right,
                                   float top, float bottom) {
-  // Directly assign values to the mat4 matrix
   (*mat4)[0][0] = 2 / (right - left);
   (*mat4)[0][1] = 0;
   (*mat4)[0][2] = 0;
