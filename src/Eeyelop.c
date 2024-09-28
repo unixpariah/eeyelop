@@ -2,6 +2,7 @@
 
 #include "EGL/egl.h"
 #include "EGL/eglplatform.h"
+#include "math.h"
 #include <ArrayList.h>
 #include <Config.h>
 #include <Eeyelop.h>
@@ -13,6 +14,8 @@
 #include <wayland-client-protocol.h>
 #include <wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <xdg-output-client-protocol.h>
+
+#include "GL/glext.h"
 
 Eeyelop eeyelop_init(struct wl_display *display) {
   Eeyelop eeyelop = {
@@ -29,6 +32,24 @@ Eeyelop eeyelop_init(struct wl_display *display) {
     printf("Failed to initialize egl with error: 0x%x\n", error);
     exit(1);
   };
+
+  struct {
+    Mat4 projection;
+  } uniform_object;
+
+  math_orthographic_projection(&uniform_object.projection, 0,
+                               (float)eeyelop.config.width, 0,
+                               (float)eeyelop.config.height);
+
+  glBindBuffer(GL_UNIFORM_BUFFER, eeyelop.egl.UBO);
+  glBufferData(GL_UNIFORM_BUFFER, sizeof(uniform_object), &uniform_object,
+               GL_STATIC_DRAW);
+
+  glBindBufferBase(GL_UNIFORM_BUFFER, 0, eeyelop.egl.UBO);
+  glUniformBlockBinding(
+      eeyelop.egl.main_shader_program,
+      glGetUniformBlockIndex(eeyelop.egl.main_shader_program, "UniformBlock"),
+      0);
 
   return eeyelop;
 }
