@@ -58,7 +58,8 @@ pub fn build(b: *std.Build) !void {
 
     exe.addIncludePath(b.path("include"));
     exe.addLibraryPath(b.path("lib"));
-    exe.addCSourceFiles(.{ .files = &[_][]const u8{
+
+    const source_files = &[_][]const u8{
         "lib/xdg-shell-client-protocol.c",
         "lib/xdg-output-client-protocol.c",
         "lib/wlr-layer-shell-unstable-v1-client-protocol.c",
@@ -69,7 +70,10 @@ pub fn build(b: *std.Build) !void {
         "src/Egl.c",
         "src/Config.c",
         "src/Seat.c",
-    }, .flags = &[_][]const u8{
+        "src/math.c",
+    };
+
+    const flags = &[_][]const u8{
         "-std=c11",
         "-pedantic",
         "-Wall",
@@ -77,7 +81,12 @@ pub fn build(b: *std.Build) !void {
         "-Wno-missing-field-initializers",
         "-fno-sanitize=undefined",
         "-Wunused-result",
-    } });
+    };
+
+    exe.addCSourceFiles(.{
+        .files = source_files,
+        .flags = flags,
+    });
 
     const wayland_protocols_dir = try getWaylandProtocolsDir(alloc);
     defer alloc.free(wayland_protocols_dir);
@@ -117,4 +126,8 @@ pub fn build(b: *std.Build) !void {
 
     const run_step = b.step("run", "Run");
     run_step.dependOn(&run_cmd.step);
+
+    const cmd = b.addSystemCommand(.{"clang-tidy"} ++ source_files);
+    const tidy_step = b.step("tidy", "Run clang-tidy");
+    tidy_step.dependOn(&cmd.step);
 }

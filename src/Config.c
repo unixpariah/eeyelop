@@ -1,3 +1,4 @@
+#include "wayland-client-protocol.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include <Config.h>
 #include <stdint.h>
@@ -79,6 +80,7 @@ void config_update(Config *config, Output *output) {
 
   zwlr_layer_surface_v1_set_size(output->layer_surface, config->width,
                                  config->height);
-  wl_egl_window_resize(output->egl.window, config->width, config->height,
-                       output->info.x, output->info.y);
+  wl_egl_window_resize(output->egl.window, config->width, config->height, 0, 0);
+
+  wl_surface_commit(output->surface);
 }

@@ -1,4 +1,5 @@
 #include "EGL/eglplatform.h"
+#include "Seat.h"
 #define GL_GLEXT_PROTOTYPES 1
 
 #include "ArrayList.h"
@@ -42,7 +43,7 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
 
     struct zwlr_layer_surface_v1 *layer_surface =
         zwlr_layer_shell_v1_get_layer_surface(eeyelop->layer_shell, surface,
-                                              NULL, 3, "eeyelop");
+                                              wl_output, 3, "eeyelop");
 
     zwlr_layer_surface_v1_add_listener(layer_surface, &layer_surface_listener,
                                        eeyelop);
@@ -65,14 +66,16 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
     Output output = output_init(egl_surface, surface, layer_surface, wl_output,
                                 xdg_output, name);
 
-    zxdg_output_v1_add_listener(xdg_output, &output_listener, eeyelop);
-
     wl_surface_commit(surface);
 
     if (array_list_append(&eeyelop->outputs, &output) == -1) {
       printf("Out of memory\n");
       exit(1);
     };
+
+    zxdg_output_v1_add_listener(
+        xdg_output, &output_listener,
+        eeyelop->outputs.items[eeyelop->outputs.len - 1]);
   }
 }
 
@@ -106,8 +109,13 @@ int render(Eeyelop *eeyelop) {
       return -1;
     };
 
+    // glUseProgram(eeyelop->egl.main_shader_program);
     glClear(GL_COLOR_BUFFER_BIT);
-    glClearColor(0, 0, 0, 1);
+    glClearColor(1, 0, 0, 1);
+
+    // glBindBuffer(GL_ARRAY_BUFFER, eeyelop->egl.VBO);
+    // glVertexAttribPointer(0, 2, GL_INT, GL_FALSE, 0, NULL);
+    // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
 
     if (!eglSwapBuffers(*output->egl.display, output->egl.surface)) {
       return -1;

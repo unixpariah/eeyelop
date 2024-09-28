@@ -131,6 +131,7 @@ int egl_init(Egl *egl, struct wl_display *display) {
   glDeleteShader(main_fragment_shader);
 
   glGenBuffers(1, &egl->VBO);
+  glGenBuffers(1, &egl->UBO);
 
   return 0;
 }

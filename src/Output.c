@@ -1,10 +1,12 @@
+#define GL_GLEXT_PROTOTYPES 1
+
 #include "Config.h"
 #include "Egl.h"
+#include "GL/glext.h"
 #include "wayland-egl-core.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "xdg-output-client-protocol.h"
 #include <Eeyelop.h>
-#include <GLES2/gl2.h>
 #include <Output.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -64,64 +66,35 @@ void output_info_deinit(OutputInfo *output_info) {
 
 void output_handle_name(void *data, struct zxdg_output_v1 *xdg_output,
                         const char *name) {
-  Eeyelop *eeyelop = data;
+  Output *output = data;
 
-  for (int i = 0; i < eeyelop->outputs.len; i++) {
-    Output *output = (Output *)eeyelop->outputs.items[i];
-
-    if (output->xdg_output == xdg_output) {
-      output->info.name = malloc(strlen(name) + 1);
-      strncpy(output->info.name, name, strlen(name));
-      return;
-    }
-  }
+  output->info.name = malloc(strlen(name) + 1);
+  strncpy(output->info.name, name, strlen(name));
 }
 
 void output_handle_description(void *data, struct zxdg_output_v1 *xdg_output,
                                const char *description) {
+  Output *output = data;
 
-  Eeyelop *eeyelop = data;
-
-  for (int i = 0; i < eeyelop->outputs.len; i++) {
-    Output *output = (Output *)eeyelop->outputs.items[i];
-
-    if (output->xdg_output == xdg_output) {
-      output->info.description = malloc(strlen(description) + 1);
-      strncpy(output->info.description, description, strlen(description));
-      return;
-    }
-  }
+  output->info.description = malloc(strlen(description) + 1);
+  strncpy(output->info.description, description, strlen(description));
 }
 
 void output_handle_logical_size(void *data, struct zxdg_output_v1 *xdg_output,
                                 int32_t width, int32_t height) {
+  Output *output = data;
 
-  Eeyelop *eeyelop = data;
-  for (int i = 0; i < eeyelop->outputs.len; i++) {
-    Output *output = (Output *)eeyelop->outputs.items[i];
-
-    if (output->xdg_output == xdg_output) {
-      output->info.width = width;
-      output->info.height = height;
-      return;
-    }
-  }
+  output->info.width = width;
+  output->info.height = height;
 }
 
 void output_handle_logical_position(void *data,
                                     struct zxdg_output_v1 *xdg_output,
                                     int32_t x, int32_t y) {
+  Output *output = data;
 
-  Eeyelop *eeyelop = data;
-  for (int i = 0; i < eeyelop->outputs.len; i++) {
-    Output *output = (Output *)eeyelop->outputs.items[i];
-
-    if (output->xdg_output == xdg_output) {
-      output->info.x = x;
-      output->info.y = y;
-      return;
-    }
-  }
+  output->info.x = x;
+  output->info.y = y;
 }
 
 void output_handle_done(void *data, struct zxdg_output_v1 *xdg_output) {}
@@ -146,7 +119,14 @@ void layer_surface_handle_configure(void *data,
       config_update(&eeyelop->config, output);
       zwlr_layer_surface_v1_ack_configure(output->layer_surface, serial);
 
-      int vertices[8] = {};
+      // clang-format off
+      int vertices[8] = {
+          0,                     0,
+          eeyelop->config.width, 0,
+          0,                     eeyelop->config.height,
+          eeyelop->config.width, eeyelop->config.height,
+      };
+      // clang-format on
 
       glBindBuffer(GL_ARRAY_BUFFER, eeyelop->egl.VBO);
       glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices,
