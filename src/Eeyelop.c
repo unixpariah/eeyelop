@@ -21,10 +21,10 @@ Eeyelop eeyelop_init(struct wl_display *display) {
   Eeyelop eeyelop = {
       .compositor = NULL,
       .layer_shell = NULL,
-      .output_manager = NULL,
       .outputs = array_list_init(sizeof(Output)),
       .config = config_init(),
       .seat = seat_init(),
+      .surface_count = 0,
   };
 
   if (egl_init(&eeyelop.egl, display) == 1) {
@@ -57,7 +57,6 @@ Eeyelop eeyelop_init(struct wl_display *display) {
 void eeyelop_deinit(Eeyelop *eeyelop) {
   wl_compositor_destroy(eeyelop->compositor);
   zwlr_layer_shell_v1_destroy(eeyelop->layer_shell);
-  zxdg_output_manager_v1_destroy(eeyelop->output_manager);
   seat_deinit(&eeyelop->seat);
 
   for (int i = 0; i < eeyelop->outputs.len; i++) {

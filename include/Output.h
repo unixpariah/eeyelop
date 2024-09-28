@@ -2,6 +2,7 @@
 #define OUTPUT_H
 
 #include "Egl.h"
+#include "wayland-client-protocol.h"
 
 typedef struct {
   uint32_t id;
@@ -20,19 +21,16 @@ typedef struct {
   EglSurface egl;
   struct wl_surface *surface;
   struct zwlr_layer_surface_v1 *layer_surface;
-  struct zxdg_output_v1 *xdg_output;
   struct wl_output *wl_output;
 } Output;
 
 Output output_init(EglSurface, struct wl_surface *,
                    struct zwlr_layer_surface_v1 *, struct wl_output *,
-                   struct zxdg_output_v1 *, unsigned int);
+                   unsigned int);
 
 void output_deinit(Output *);
 
-int output_is_configured(Output *);
-
-extern const struct zxdg_output_v1_listener output_listener;
+extern const struct wl_output_listener output_listener;
 
 extern const struct zwlr_layer_surface_v1_listener layer_surface_listener;
 

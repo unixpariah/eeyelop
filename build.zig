@@ -98,12 +98,6 @@ pub fn build(b: *std.Build) !void {
         .{wayland_protocols_dir[0 .. wayland_protocols_dir.len - 1]},
     );
     defer alloc.free(xdg_shell_protocol);
-    const xdg_output_protocol = try std.fmt.allocPrint(
-        alloc,
-        "{s}/unstable/xdg-output/xdg-output-unstable-v1.xml",
-        .{wayland_protocols_dir[0 .. wayland_protocols_dir.len - 1]},
-    );
-    defer alloc.free(xdg_output_protocol);
 
     exe.linkSystemLibrary("wayland-client");
     exe.linkSystemLibrary("wayland-egl");
@@ -115,7 +109,6 @@ pub fn build(b: *std.Build) !void {
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());
 
-    generateProtocolCode(b, run_cmd, xdg_output_protocol, "xdg-output-client-protocol");
     generateProtocolCode(b, run_cmd, xdg_shell_protocol, "xdg-shell-client-protocol");
     generateProtocolCode(b, run_cmd, wlr_layer_shell_protocol, "wlr-layer-shell-unstable-v1-client-protocol");
 

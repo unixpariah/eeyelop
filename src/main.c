@@ -32,9 +32,6 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
     eeyelop->seat.seat =
         wl_registry_bind(registry, name, &wl_seat_interface, 3);
     wl_seat_add_listener(eeyelop->seat.seat, &seat_listener, &eeyelop->seat);
-  } else if (strcmp(interface, zxdg_output_manager_v1_interface.name) == 0) {
-    eeyelop->output_manager = wl_registry_bind(
-        registry, name, &zxdg_output_manager_v1_interface, version);
   } else if (strcmp(interface, wl_output_interface.name) == 0) {
     struct wl_output *wl_output =
         wl_registry_bind(registry, name, &wl_output_interface, version);
@@ -58,14 +55,11 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
     zwlr_layer_surface_v1_set_keyboard_interactivity(
         layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
 
-    struct zxdg_output_v1 *xdg_output = zxdg_output_manager_v1_get_xdg_output(
-        eeyelop->output_manager, wl_output);
-
     EglSurface egl_surface =
         egl_surface_init(&eeyelop->egl, surface, (int[2]){1, 1});
 
-    Output output = output_init(egl_surface, surface, layer_surface, wl_output,
-                                xdg_output, name);
+    Output output =
+        output_init(egl_surface, surface, layer_surface, wl_output, name);
 
     wl_surface_commit(surface);
 
@@ -74,9 +68,8 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
       exit(1);
     };
 
-    zxdg_output_v1_add_listener(
-        xdg_output, &output_listener,
-        eeyelop->outputs.items[eeyelop->outputs.len - 1]);
+    wl_output_add_listener(wl_output, &output_listener,
+                           eeyelop->outputs.items[eeyelop->outputs.len - 1]);
   }
 }
 
@@ -97,11 +90,17 @@ static const struct wl_registry_listener registry_listener = {
     .global_remove = handle_global_remove,
 };
 
+void render_background(Eeyelop *eeyelop) {
+  glUseProgram(eeyelop->egl.main_shader_program);
+  glBindBuffer(GL_ARRAY_BUFFER, eeyelop->egl.VBO);
+  glVertexAttribPointer(0, 2, GL_INT, GL_FALSE, 0, NULL);
+  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+}
+
 int render(Eeyelop *eeyelop) {
   for (int i = 0; i < eeyelop->outputs.len; i++) {
     Output *output = (Output *)eeyelop->outputs.items[i];
-    if (!output_is_configured(output) ||
-        strcmp(output->info.name, eeyelop->config.output) != 0) {
+    if (strcmp(output->info.name, eeyelop->config.output) != 0) {
       continue;
     }
 
@@ -110,13 +109,10 @@ int render(Eeyelop *eeyelop) {
       return -1;
     };
 
-    glUseProgram(eeyelop->egl.main_shader_program);
     glClear(GL_COLOR_BUFFER_BIT);
     glClearColor(0, 0, 0, 0);
 
-    glBindBuffer(GL_ARRAY_BUFFER, eeyelop->egl.VBO);
-    glVertexAttribPointer(0, 2, GL_INT, GL_FALSE, 0, NULL);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+    render_background(eeyelop);
 
     if (!eglSwapBuffers(*output->egl.display, output->egl.surface)) {
       return -1;

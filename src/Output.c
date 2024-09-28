@@ -14,10 +14,16 @@
 #include <string.h>
 #include <wayland-client-protocol.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-prototypes"
+
+static void noop() {}
+
+#pragma GCC diagnostic pop
+
 Output output_init(EglSurface egl_surface, struct wl_surface *surface,
                    struct zwlr_layer_surface_v1 *layer_surface,
-                   struct wl_output *wl_output,
-                   struct zxdg_output_v1 *xdg_output, unsigned int id) {
+                   struct wl_output *wl_output, unsigned int id) {
 
   OutputInfo output_info = {
       .id = id,
@@ -34,7 +40,6 @@ Output output_init(EglSurface egl_surface, struct wl_surface *surface,
       .info = output_info,
       .surface = surface,
       .layer_surface = layer_surface,
-      .xdg_output = xdg_output,
       .egl = egl_surface,
   };
 
@@ -48,7 +53,6 @@ int output_is_configured(Output *output) {
 void output_deinit(Output *output) {
   wl_surface_destroy(output->surface);
   zwlr_layer_surface_v1_destroy(output->layer_surface);
-  zxdg_output_v1_destroy(output->xdg_output);
   output_info_deinit(&output->info);
   wl_output_release(output->wl_output);
   egl_surface_deinit(&output->egl);
@@ -64,7 +68,7 @@ void output_info_deinit(OutputInfo *output_info) {
   output_info->height = 0;
 }
 
-void output_handle_name(void *data, struct zxdg_output_v1 *xdg_output,
+void output_handle_name(void *data, struct wl_output *wl_output,
                         const char *name) {
   Output *output = data;
 
@@ -72,39 +76,13 @@ void output_handle_name(void *data, struct zxdg_output_v1 *xdg_output,
   strncpy(output->info.name, name, strlen(name));
 }
 
-void output_handle_description(void *data, struct zxdg_output_v1 *xdg_output,
-                               const char *description) {
-  Output *output = data;
-
-  output->info.description = malloc(strlen(description) + 1);
-  strncpy(output->info.description, description, strlen(description));
-}
-
-void output_handle_logical_size(void *data, struct zxdg_output_v1 *xdg_output,
-                                int32_t width, int32_t height) {
-  Output *output = data;
-
-  output->info.width = width;
-  output->info.height = height;
-}
-
-void output_handle_logical_position(void *data,
-                                    struct zxdg_output_v1 *xdg_output,
-                                    int32_t x, int32_t y) {
-  Output *output = data;
-
-  output->info.x = x;
-  output->info.y = y;
-}
-
-void output_handle_done(void *data, struct zxdg_output_v1 *xdg_output) {}
-
-const struct zxdg_output_v1_listener output_listener = {
+const struct wl_output_listener output_listener = {
     .name = output_handle_name,
-    .description = output_handle_description,
-    .logical_size = output_handle_logical_size,
-    .logical_position = output_handle_logical_position,
-    .done = output_handle_done,
+    .done = noop,
+    .description = noop,
+    .scale = noop,
+    .mode = noop,
+    .geometry = noop,
 };
 
 void layer_surface_handle_configure(void *data,
