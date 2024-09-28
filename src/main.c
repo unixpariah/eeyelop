@@ -129,6 +129,7 @@ int main(void) {
   struct wl_display *display = wl_display_connect(NULL);
   if (!display) {
     printf("Failed to create display\n");
+    return EXIT_FAILURE;
   }
 
   Eeyelop eeyelop = eeyelop_init(display);

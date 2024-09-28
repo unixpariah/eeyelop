@@ -15,31 +15,28 @@ fn getWaylandProtocolsDir(alloc: std.mem.Allocator) ![]const u8 {
     return try stdout.toOwnedSlice();
 }
 
-fn genWaylandProtocol(
-    alloc: std.mem.Allocator,
-    wayland_scanner: []const u8,
-    spec_location: []const u8,
-    comptime output_name: []const u8,
-) !void {
-    {
-        var process = std.process.Child.init(&[_][]const u8{
-            wayland_scanner,
-            "client-header",
-            spec_location,
-            "include/" ++ output_name ++ ".h",
-        }, alloc);
-        _ = try process.spawnAndWait();
-    }
+fn generateProtocolCode(
+    b: *std.Build,
+    run_cmd: *std.Build.Step.Run,
+    protocol_path: []const u8,
+    comptime protocol_name: []const u8,
+) void {
+    const client_header = b.addSystemCommand(&.{
+        "wayland-scanner",
+        "client-header",
+        protocol_path,
+        "include/" ++ protocol_name ++ ".h",
+    });
 
-    {
-        var process = std.process.Child.init(&[_][]const u8{
-            wayland_scanner,
-            "private-code",
-            spec_location,
-            "lib/" ++ output_name ++ ".c",
-        }, alloc);
-        _ = try process.spawnAndWait();
-    }
+    const private_code = b.addSystemCommand(&.{
+        "wayland-scanner",
+        "private-code",
+        protocol_path,
+        "lib/" ++ protocol_name ++ ".c",
+    });
+
+    run_cmd.step.dependOn(&client_header.step);
+    run_cmd.step.dependOn(&private_code.step);
 }
 
 pub fn build(b: *std.Build) !void {
@@ -91,8 +88,6 @@ pub fn build(b: *std.Build) !void {
     const wayland_protocols_dir = try getWaylandProtocolsDir(alloc);
     defer alloc.free(wayland_protocols_dir);
 
-    const wayland_scanner = try b.findProgram(&[_][]const u8{"wayland-scanner"}, &[_][]const u8{"wayland-scanner"});
-
     const wlr_layer_shell_protocol = "protocols/wlr-layer-shell-unstable-v1.xml";
     const xdg_shell_protocol = try std.fmt.allocPrint(
         alloc,
@@ -105,12 +100,7 @@ pub fn build(b: *std.Build) !void {
         "{s}/unstable/xdg-output/xdg-output-unstable-v1.xml",
         .{wayland_protocols_dir[0 .. wayland_protocols_dir.len - 1]},
     );
-
     defer alloc.free(xdg_output_protocol);
-
-    try genWaylandProtocol(alloc, wayland_scanner, wlr_layer_shell_protocol, "wlr-layer-shell-unstable-v1-client-protocol");
-    try genWaylandProtocol(alloc, wayland_scanner, xdg_shell_protocol, "xdg-shell-client-protocol");
-    try genWaylandProtocol(alloc, wayland_scanner, xdg_output_protocol, "xdg-output-client-protocol");
 
     exe.linkSystemLibrary("wayland-client");
     exe.linkSystemLibrary("wayland-egl");
@@ -121,6 +111,10 @@ pub fn build(b: *std.Build) !void {
 
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());
+
+    generateProtocolCode(b, run_cmd, xdg_output_protocol, "xdg-output-client-protocol");
+    generateProtocolCode(b, run_cmd, xdg_shell_protocol, "xdg-shell-client-protocol");
+    generateProtocolCode(b, run_cmd, wlr_layer_shell_protocol, "wlr-layer-shell-unstable-v1-client-protocol");
 
     if (b.args) |args| run_cmd.addArgs(args);
 
