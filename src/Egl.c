@@ -1,3 +1,4 @@
+#include "shaders/text.h"
 #define GL_GLEXT_PROTOTYPES 1
 
 #include "shaders/main.h"
@@ -34,6 +35,40 @@ int compile_shader(const char *shader_source, GLuint shader,
   }
 
   glAttachShader(shader_program, shader);
+  return 0;
+}
+
+int create_shader_program(GLuint *shader_program, const char *vertex_source,
+                          const char *fragment_source) {
+  GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+  GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+
+  *shader_program = glCreateProgram();
+
+  if (compile_shader(vertex_source, vertex_shader, *shader_program) == -1) {
+    return -1;
+  }
+
+  if (compile_shader(fragment_source, fragment_shader, *shader_program) == -1) {
+    return -1;
+  }
+
+  glLinkProgram(*shader_program);
+
+  {
+    int link_success = 0;
+    glGetProgramiv(*shader_program, GL_LINK_STATUS, &link_success);
+    if (link_success != GL_TRUE) {
+      GLchar info_log[512];
+      glGetShaderInfoLog(*shader_program, 512, NULL, info_log);
+      printf("%s\n", info_log);
+      return -1;
+    }
+  }
+
+  glDeleteShader(vertex_shader);
+  glDeleteShader(fragment_shader);
+
   return 0;
 }
 
@@ -101,34 +136,15 @@ int egl_init(Egl *egl, struct wl_display *display) {
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  GLuint main_vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-  GLuint main_fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-
-  egl->main_shader_program = glCreateProgram();
-
-  if (compile_shader(vertex_shader_source, main_vertex_shader,
-                     egl->main_shader_program) == -1) {
+  if (create_shader_program(&egl->main_shader_program, main_vertex_source,
+                            main_fragment_source) == -1) {
     return -1;
-  }
+  };
 
-  if (compile_shader(fragment_shader_source, main_fragment_shader,
-                     egl->main_shader_program) == -1) {
+  if (create_shader_program(&egl->text_shader_program, text_vertex_source,
+                            text_fragment_source) == -1) {
     return -1;
-  }
-
-  glLinkProgram(egl->main_shader_program);
-
-  int link_success = 0;
-  glGetProgramiv(egl->main_shader_program, GL_LINK_STATUS, &link_success);
-  if (link_success != GL_TRUE) {
-    GLchar info_log[512];
-    glGetShaderInfoLog(egl->main_shader_program, 512, NULL, info_log);
-    printf("%s\n", info_log);
-    return -1;
-  }
-
-  glDeleteShader(main_vertex_shader);
-  glDeleteShader(main_fragment_shader);
+  };
 
   glGenVertexArrays(1, &egl->VAO);
   glBindVertexArray(egl->VAO);

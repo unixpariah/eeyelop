@@ -3,8 +3,6 @@
 #include "Config.h"
 #include "Egl.h"
 #include "GL/glext.h"
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
 #include <GL/gl.h>
 #include <Notification.h>
 #include <stdio.h>

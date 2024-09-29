@@ -1,9 +1,12 @@
-#include <Config.h>
+#define GL_GLEXT_PROTOTYPES 1
+
+#include "Config.h"
+#include "Egl.h"
+#include "GL/gl.h"
+#include "GL/glext.h"
+#include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include <Output.h>
 #include <stdint.h>
-#include <wayland-client-protocol.h>
-#include <wayland-egl-core.h>
-#include <wlr-layer-shell-unstable-v1-client-protocol.h>
 
 Config config_init(void) {
   Config config = {
@@ -19,12 +22,23 @@ Config config_init(void) {
       .output = "HDMI-A-1",
       .anchor = top_right,
       .layer = overlay,
+      .background_color = {0, 0, 0, 1},
+      .font =
+          {
+              .name = "JetBrains Mono",
+              .size = 16,
+          },
   };
 
   return config;
 }
 
 void config_update(Config *config, Output *output) {
+  glUseProgram(*output->egl.main_shader_program);
+  GLint location =
+      glGetUniformLocation(*output->egl.main_shader_program, "color");
+  glUniform4fv(location, 1, (const GLfloat *)&config->background_color);
+
   uint32_t layer = 0;
   switch (config->layer) {
   case background:

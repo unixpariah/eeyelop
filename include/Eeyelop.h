@@ -5,6 +5,7 @@
 #include <Config.h>
 #include <Egl.h>
 #include <Seat.h>
+#include <Text.h>
 #include <stdbool.h>
 
 typedef struct {
@@ -15,6 +16,7 @@ typedef struct {
   Egl egl;
   Config config;
   Seat seat;
+  Text text;
 } Eeyelop;
 
 Eeyelop eeyelop_init(struct wl_display *display);

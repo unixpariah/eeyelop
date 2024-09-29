@@ -6,17 +6,11 @@
 #include <Seat.h>
 #include <stdint.h>
 #include <stdio.h>
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstrict-prototypes"
-
-static void noop() {}
-
-#pragma GCC diagnostic pop
+#include <string.h>
 
 Seat seat_init(void) {
   Seat seat = {
-      .pointer = {},
+      .pointer = {0},
       .seat = NULL,
   };
 
@@ -28,16 +22,12 @@ void seat_deinit(Seat *seat) {
   wl_seat_release(seat->seat);
 }
 
-void pointer_handle_enter(void *data, struct wl_pointer *pointer,
-                          uint32_t serial, struct wl_surface *surface,
-                          wl_fixed_t surface_x, wl_fixed_t surface_y) {
-  printf("Entered\n");
-}
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-prototypes"
 
-void pointer_handle_leave(void *data, struct wl_pointer *pointer,
-                          uint32_t serial, struct wl_surface *surface) {
-  printf("Left :(\n");
-}
+static void noop() {}
+
+#pragma GCC diagnostic pop
 
 void pointer_handle_motion(void *data, struct wl_pointer *pointer,
                            uint32_t serial, wl_fixed_t surface_x,
@@ -45,9 +35,6 @@ void pointer_handle_motion(void *data, struct wl_pointer *pointer,
   Eeyelop *eeyelop = data;
   eeyelop->seat.pointer.x = wl_fixed_to_int(surface_x);
   eeyelop->seat.pointer.y = wl_fixed_to_int(surface_y);
-
-  for (int i = 0; i < eeyelop->notifications.len; i++) {
-  }
 }
 
 void pointer_handle_button(void *data, struct wl_pointer *pointer,
@@ -63,16 +50,25 @@ void pointer_handle_button(void *data, struct wl_pointer *pointer,
         eeyelop->seat.pointer.y > notification->y &&
         eeyelop->seat.pointer.y < notification->y + notification->height) {
       array_list_ordered_remove(&eeyelop->notifications, i);
+
+      for (int j = i; j < eeyelop->notifications.len; j++) {
+        Notification *notification =
+            (Notification *)eeyelop->notifications.items[j];
+
+        notification->y = notification->height * j +
+                          eeyelop->config.margin.top * (j + 1) +
+                          eeyelop->config.margin.bottom * j;
+      }
     }
   }
 }
 
 const struct wl_pointer_listener pointer_listener = {
-    .axis = noop,
-    .enter = pointer_handle_enter,
-    .leave = pointer_handle_leave,
     .motion = pointer_handle_motion,
     .button = pointer_handle_button,
+    .axis = noop,
+    .enter = noop,
+    .leave = noop,
 };
 
 void seat_handle_capabilities(void *data, struct wl_seat *wl_seat,

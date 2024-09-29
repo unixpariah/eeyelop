@@ -1,7 +1,7 @@
 #ifndef MAIN_SHADER_H
 #define MAIN_SHADER_H
 
-const char *vertex_shader_source =
+const char *main_vertex_source =
     "#version 460 core\n"
     "layout(location = 0) in vec2 in_pos;\n"
     "uniform mat4 projection;\n"
@@ -12,13 +12,12 @@ const char *vertex_shader_source =
     "    v_pos = position.xy;\n"
     "}\n";
 
-const char *fragment_shader_source =
-    "#version 460 core\n"
-    "layout(location = 0) out vec4 FragColor;\n"
-    "in vec2 v_pos;\n"
-    "void main() {\n"
-    "    vec4 color = vec4(1.0);\n"
-    "    FragColor = color;\n"
-    "}\n";
+const char *main_fragment_source = "#version 460 core\n"
+                                   "layout(location = 0) out vec4 FragColor;\n"
+                                   "uniform vec4 color;"
+                                   "in vec2 v_pos;\n"
+                                   "void main() {\n"
+                                   "    FragColor = color;\n"
+                                   "}\n";
 
 #endif // MAIN_SHADER_H

@@ -1,7 +1,9 @@
+#include "math.h"
 #define GL_GLEXT_PROTOTYPES 1
 
 #include "Config.h"
 #include "Egl.h"
+#include "GL/gl.h"
 #include "GL/glext.h"
 #include "wayland-egl-core.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
@@ -56,9 +58,9 @@ void output_surface_resize(Output *output, int width, int height) {
   math_orthographic_projection(&mat4, 0, (float)width, 0, (float)height);
 
   glUseProgram(*output->egl.main_shader_program);
-  GLint projection_location =
+  GLint location =
       glGetUniformLocation(*output->egl.main_shader_program, "projection");
-  glUniformMatrix4fv(projection_location, 1, GL_FALSE, (const GLfloat *)mat4);
+  glUniformMatrix4fv(location, 1, GL_FALSE, (const GLfloat *)mat4);
 }
 
 void output_deinit(Output *output) {

@@ -66,6 +66,7 @@ pub fn build(b: *std.Build) !void {
         "src/Seat.c",
         "src/math.c",
         "src/Notification.c",
+        "src/Text.c",
     };
 
     const protocol_files = &[_][]const u8{
@@ -104,6 +105,8 @@ pub fn build(b: *std.Build) !void {
     exe.linkSystemLibrary("wayland-egl");
     exe.linkSystemLibrary("egl");
     exe.linkSystemLibrary("gl");
+    exe.linkSystemLibrary("fontconfig");
+    exe.linkSystemLibrary("freetype2");
 
     b.installArtifact(exe);
 

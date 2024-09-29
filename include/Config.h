@@ -30,12 +30,17 @@ typedef struct {
 } Margin;
 
 typedef struct {
+  float background_color[4];
   int width;
   int height;
   Margin margin;
   char *output;
   enum Anchor anchor;
   enum Layer layer;
+  struct {
+    const char *name;
+    int size;
+  } font;
 } Config;
 
 Config config_init(void);

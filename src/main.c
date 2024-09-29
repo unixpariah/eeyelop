@@ -130,7 +130,7 @@ int render(Eeyelop *eeyelop) {
     };
 
     glClear(GL_COLOR_BUFFER_BIT);
-    glClearColor(1, 0, 0, 1);
+    glClearColor(0, 0, 0, 0);
 
     glUseProgram(eeyelop->egl.main_shader_program);
     for (int i = 0; i < eeyelop->notifications.len; i++) {
@@ -178,12 +178,14 @@ int main(void) {
       continue;
     }
 
-    output_surface_resize(output,
-                          eeyelop.config.width + eeyelop.config.margin.left +
-                              eeyelop.config.margin.right,
-                          (eeyelop.config.height + eeyelop.config.margin.top +
-                           eeyelop.config.margin.bottom) *
-                              eeyelop.notifications.len);
+    int total_width = eeyelop.config.width + eeyelop.config.margin.left +
+                      eeyelop.config.margin.right;
+
+    int total_height = (eeyelop.config.height + eeyelop.config.margin.top +
+                        eeyelop.config.margin.bottom) *
+                       eeyelop.notifications.len;
+
+    output_surface_resize(output, total_width, total_height);
   }
 
   if (render(&eeyelop) == -1) {

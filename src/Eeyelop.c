@@ -13,7 +13,6 @@
 #include <stdlib.h>
 #include <wayland-client-protocol.h>
 #include <wlr-layer-shell-unstable-v1-client-protocol.h>
-#include <xdg-output-client-protocol.h>
 
 Eeyelop eeyelop_init(struct wl_display *display) {
 
@@ -31,6 +30,8 @@ Eeyelop eeyelop_init(struct wl_display *display) {
     printf("Failed to initialize egl with error: 0x%x\n", error);
     exit(1);
   };
+
+  eeyelop.text = text_init(&eeyelop.config);
 
   return eeyelop;
 }
