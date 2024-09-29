@@ -46,8 +46,19 @@ Output output_init(EglSurface egl_surface, struct wl_surface *surface,
   return output;
 }
 
-int output_is_configured(Output *output) {
-  return output->info.width > 0 && output->info.height > 0;
+void output_surface_resize(Output *output, int width, int height) {
+  zwlr_layer_surface_v1_set_size(output->layer_surface, width, height);
+  wl_egl_window_resize(output->egl.window, width, height, 0, 0);
+
+  wl_surface_commit(output->surface);
+
+  Mat4 mat4;
+  math_orthographic_projection(&mat4, 0, (float)width, 0, (float)height);
+
+  glUseProgram(*output->egl.main_shader_program);
+  GLint projection_location =
+      glGetUniformLocation(*output->egl.main_shader_program, "projection");
+  glUniformMatrix4fv(projection_location, 1, GL_FALSE, (const GLfloat *)mat4);
 }
 
 void output_deinit(Output *output) {
@@ -96,19 +107,6 @@ void layer_surface_handle_configure(void *data,
     if (output->layer_surface == layer_surface) {
       config_update(&eeyelop->config, output);
       zwlr_layer_surface_v1_ack_configure(output->layer_surface, serial);
-
-      // clang-format off
-      int vertices[8] = {
-          0,                     0,
-          eeyelop->config.width, 0,
-          0,                     eeyelop->config.height,
-          eeyelop->config.width, eeyelop->config.height,
-      };
-      // clang-format on
-
-      glBindBuffer(GL_ARRAY_BUFFER, eeyelop->egl.VBO);
-      glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices,
-                   GL_STATIC_DRAW);
     }
   }
 }

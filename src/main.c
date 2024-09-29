@@ -90,11 +90,37 @@ static const struct wl_registry_listener registry_listener = {
     .global_remove = handle_global_remove,
 };
 
-void render_background(Eeyelop *eeyelop) {
-  glUseProgram(eeyelop->egl.main_shader_program);
+void render_pane(Eeyelop *eeyelop, int index) {
+  int x = eeyelop->config.margin.left;
+  int y =
+      eeyelop->config.height * index + eeyelop->config.margin.top * (index + 1);
+
+  if (index > 0) {
+    y += eeyelop->config.margin.bottom * index;
+  }
+
+  // clang-format off
+  int vertices[8] = {
+      x,                                                    y,
+      eeyelop->config.width - eeyelop->config.margin.right, y,
+      x,                                                    y + eeyelop->config.height,
+      eeyelop->config.width - eeyelop->config.margin.right, y + eeyelop->config.height,
+  };
+  // clang-format on
+
+  glBindBuffer(GL_ARRAY_BUFFER, eeyelop->egl.VBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
+
   glBindBuffer(GL_ARRAY_BUFFER, eeyelop->egl.VBO);
   glVertexAttribPointer(0, 2, GL_INT, GL_FALSE, 0, NULL);
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+}
+
+void render_background(Eeyelop *eeyelop) {
+  glUseProgram(eeyelop->egl.main_shader_program);
+  for (int i = 0; i < eeyelop->surface_count; i++) {
+    render_pane(eeyelop, i);
+  }
 }
 
 int render(Eeyelop *eeyelop) {
@@ -104,13 +130,18 @@ int render(Eeyelop *eeyelop) {
       continue;
     }
 
+    output_surface_resize(output, eeyelop->config.width,
+                          (eeyelop->config.height + eeyelop->config.margin.top +
+                           eeyelop->config.margin.bottom) *
+                              eeyelop->surface_count);
+
     if (!eglMakeCurrent(*output->egl.display, output->egl.surface,
                         output->egl.surface, *output->egl.context)) {
       return -1;
     };
 
     glClear(GL_COLOR_BUFFER_BIT);
-    glClearColor(0, 0, 0, 0);
+    glClearColor(1, 0, 0, 1);
 
     render_background(eeyelop);
 
@@ -141,6 +172,8 @@ int main(void) {
     printf("wlr_layer_shell protocol unsupported\n");
     return EXIT_FAILURE;
   }
+
+  eeyelop.surface_count = 5;
 
   if (render(&eeyelop) == -1) {
     EGLint error = eglGetError();

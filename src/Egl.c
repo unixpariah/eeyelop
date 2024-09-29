@@ -136,7 +136,6 @@ int egl_init(Egl *egl, struct wl_display *display) {
 
   glGenBuffers(1, &egl->VBO);
   glGenBuffers(1, &egl->EBO);
-  glGenBuffers(1, &egl->UBO);
 
   // clang-format off
   int indices[6] = {
@@ -170,7 +169,6 @@ int egl_deinit(Egl *egl) {
   glDeleteBuffers(1, &egl->VAO);
   glDeleteBuffers(1, &egl->VBO);
   glDeleteBuffers(1, &egl->EBO);
-  glDeleteBuffers(1, &egl->UBO);
 
   return 0;
 }

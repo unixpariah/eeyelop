@@ -76,13 +76,6 @@ void config_update(Config *config, Output *output) {
 
   zwlr_layer_surface_v1_set_layer(output->layer_surface, layer);
   zwlr_layer_surface_v1_set_anchor(output->layer_surface, anchor);
-  zwlr_layer_surface_v1_set_margin(output->layer_surface, config->margin.top,
-                                   config->margin.right, config->margin.bottom,
-                                   config->margin.left);
 
-  zwlr_layer_surface_v1_set_size(output->layer_surface, config->width,
-                                 config->height);
-  wl_egl_window_resize(output->egl.window, config->width, config->height, 0, 0);
-
-  wl_surface_commit(output->surface);
+  output_surface_resize(output, config->width, config->height);
 }

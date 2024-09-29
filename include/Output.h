@@ -28,6 +28,8 @@ Output output_init(EglSurface, struct wl_surface *,
                    struct zwlr_layer_surface_v1 *, struct wl_output *,
                    unsigned int);
 
+void output_surface_resize(Output *, int, int);
+
 void output_deinit(Output *);
 
 extern const struct wl_output_listener output_listener;
