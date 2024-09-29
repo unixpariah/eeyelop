@@ -6,6 +6,7 @@
 #include <Config.h>
 #include <Eeyelop.h>
 #include <Egl.h>
+#include <Notification.h>
 #include <Output.h>
 #include <Seat.h>
 #include <stdio.h>
@@ -15,13 +16,14 @@
 #include <xdg-output-client-protocol.h>
 
 Eeyelop eeyelop_init(struct wl_display *display) {
+
   Eeyelop eeyelop = {
       .compositor = NULL,
       .layer_shell = NULL,
       .outputs = array_list_init(sizeof(Output)),
+      .notifications = array_list_init(sizeof(Notification)),
       .config = config_init(),
       .seat = seat_init(),
-      .surface_count = 0,
   };
 
   if (egl_init(&eeyelop.egl, display) == 1) {

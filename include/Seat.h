@@ -4,7 +4,11 @@
 #include "wayland-client-protocol.h"
 
 typedef struct {
-  struct wl_pointer *pointer;
+  struct {
+    struct wl_pointer *wl_pointer;
+    int x;
+    int y;
+  } pointer;
   struct wl_seat *seat;
 } Seat;
 

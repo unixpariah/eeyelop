@@ -16,7 +16,7 @@ Config config_init(void) {
               .left = 10,
               .top = 10,
           },
-      .output = "eDP-1",
+      .output = "HDMI-A-1",
       .anchor = top_right,
       .layer = overlay,
   };
@@ -76,6 +76,4 @@ void config_update(Config *config, Output *output) {
 
   zwlr_layer_surface_v1_set_layer(output->layer_surface, layer);
   zwlr_layer_surface_v1_set_anchor(output->layer_surface, anchor);
-
-  output_surface_resize(output, config->width, config->height);
 }

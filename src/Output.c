@@ -89,9 +89,9 @@ void output_handle_name(void *data, struct wl_output *wl_output,
 
 const struct wl_output_listener output_listener = {
     .name = output_handle_name,
+    .scale = noop,
     .done = noop,
     .description = noop,
-    .scale = noop,
     .mode = noop,
     .geometry = noop,
 };

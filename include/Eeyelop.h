@@ -11,10 +11,10 @@ typedef struct {
   struct wl_compositor *compositor;
   struct zwlr_layer_shell_v1 *layer_shell;
   ArrayList outputs;
+  ArrayList notifications;
   Egl egl;
   Config config;
   Seat seat;
-  int surface_count;
 } Eeyelop;
 
 Eeyelop eeyelop_init(struct wl_display *display);

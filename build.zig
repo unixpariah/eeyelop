@@ -65,6 +65,7 @@ pub fn build(b: *std.Build) !void {
         "src/Config.c",
         "src/Seat.c",
         "src/math.c",
+        "src/Notification.c",
     };
 
     const protocol_files = &[_][]const u8{

@@ -14,6 +14,7 @@
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <GL/gl.h>
+#include <Notification.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +32,7 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
   } else if (strcmp(interface, wl_seat_interface.name) == 0) {
     eeyelop->seat.seat =
         wl_registry_bind(registry, name, &wl_seat_interface, 3);
-    wl_seat_add_listener(eeyelop->seat.seat, &seat_listener, &eeyelop->seat);
+    wl_seat_add_listener(eeyelop->seat.seat, &seat_listener, eeyelop);
   } else if (strcmp(interface, wl_output_interface.name) == 0) {
     struct wl_output *wl_output =
         wl_registry_bind(registry, name, &wl_output_interface, version);
@@ -116,24 +117,12 @@ void render_pane(Eeyelop *eeyelop, int index) {
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
 }
 
-void render_background(Eeyelop *eeyelop) {
-  glUseProgram(eeyelop->egl.main_shader_program);
-  for (int i = 0; i < eeyelop->surface_count; i++) {
-    render_pane(eeyelop, i);
-  }
-}
-
 int render(Eeyelop *eeyelop) {
   for (int i = 0; i < eeyelop->outputs.len; i++) {
     Output *output = (Output *)eeyelop->outputs.items[i];
     if (strcmp(output->info.name, eeyelop->config.output) != 0) {
       continue;
     }
-
-    output_surface_resize(output, eeyelop->config.width,
-                          (eeyelop->config.height + eeyelop->config.margin.top +
-                           eeyelop->config.margin.bottom) *
-                              eeyelop->surface_count);
 
     if (!eglMakeCurrent(*output->egl.display, output->egl.surface,
                         output->egl.surface, *output->egl.context)) {
@@ -143,7 +132,12 @@ int render(Eeyelop *eeyelop) {
     glClear(GL_COLOR_BUFFER_BIT);
     glClearColor(1, 0, 0, 1);
 
-    render_background(eeyelop);
+    glUseProgram(eeyelop->egl.main_shader_program);
+    for (int i = 0; i < eeyelop->notifications.len; i++) {
+      Notification *notification =
+          (Notification *)eeyelop->notifications.items[i];
+      notification_render(notification, &eeyelop->egl);
+    }
 
     if (!eglSwapBuffers(*output->egl.display, output->egl.surface)) {
       return -1;
@@ -173,7 +167,24 @@ int main(void) {
     return EXIT_FAILURE;
   }
 
-  eeyelop.surface_count = 5;
+  for (int i = 0; i < 5; i++) {
+    Notification notification = notification_init(&eeyelop.config, i);
+    array_list_append(&eeyelop.notifications, &notification);
+  }
+
+  for (int i = 0; i < eeyelop.outputs.len; i++) {
+    Output *output = (Output *)eeyelop.outputs.items[i];
+    if (strcmp(output->info.name, eeyelop.config.output) != 0) {
+      continue;
+    }
+
+    output_surface_resize(output,
+                          eeyelop.config.width + eeyelop.config.margin.left +
+                              eeyelop.config.margin.right,
+                          (eeyelop.config.height + eeyelop.config.margin.top +
+                           eeyelop.config.margin.bottom) *
+                              eeyelop.notifications.len);
+  }
 
   if (render(&eeyelop) == -1) {
     EGLint error = eglGetError();
