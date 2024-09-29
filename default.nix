@@ -14,7 +14,7 @@
   lua,
 }:
 stdenv.mkDerivation (finalAttrs: {
-  pname = "eeylop";
+  pname = "eeyelop";
   version = "0.1.0";
 
   src = ./.;
@@ -47,8 +47,8 @@ stdenv.mkDerivation (finalAttrs: {
 
   meta = with lib; {
     description = "Fancy keyboard driven notification daemon";
-    mainProgram = "eeylop";
-    homepage = "https://github.com/unixpariah/eeylop";
+    mainProgram = "eeyelop";
+    homepage = "https://github.com/unixpariah/eeyelop";
     license = licenses.mit;
     maintainers = with maintainers; [unixpariah];
     platforms = platforms.unix;

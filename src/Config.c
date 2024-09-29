@@ -19,7 +19,7 @@ Config config_init(void) {
               .left = 10,
               .top = 10,
           },
-      .output = "HDMI-A-1",
+      .output = "eDP-1",
       .anchor = top_right,
       .layer = overlay,
       .background_color = {0, 0, 0, 1},

@@ -81,6 +81,11 @@ void output_handle_name(void *data, struct wl_output *wl_output,
   Output *output = data;
 
   output->info.name = malloc(strlen(name) + 1);
+  if (output->info.name == NULL) {
+    printf("Out of memory\n");
+    output->info.name = "<unkown>";
+    return;
+  }
   strncpy(output->info.name, name, strlen(name));
 }
 
