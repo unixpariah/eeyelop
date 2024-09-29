@@ -16,13 +16,6 @@
 #include <string.h>
 #include <wayland-client-protocol.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstrict-prototypes"
-
-static void noop() {}
-
-#pragma GCC diagnostic pop
-
 Output output_init(EglSurface egl_surface, struct wl_surface *surface,
                    struct zwlr_layer_surface_v1 *layer_surface,
                    struct wl_output *wl_output, unsigned int id) {
@@ -83,11 +76,20 @@ void output_info_deinit(OutputInfo *output_info) {
 
 void output_handle_name(void *data, struct wl_output *wl_output,
                         const char *name) {
+  (void)wl_output;
+
   Output *output = data;
 
   output->info.name = malloc(strlen(name) + 1);
   strncpy(output->info.name, name, strlen(name));
 }
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-prototypes"
+
+static void noop() {}
+
+#pragma GCC diagnostic pop
 
 const struct wl_output_listener output_listener = {
     .name = output_handle_name,
@@ -102,6 +104,7 @@ void layer_surface_handle_configure(void *data,
                                     struct zwlr_layer_surface_v1 *layer_surface,
                                     uint32_t serial, uint32_t width,
                                     uint32_t height) {
+  (void)width, (void)height;
   Eeyelop *eeyelop = data;
 
   for (int i = 0; i < eeyelop->outputs.len; i++) {
@@ -113,10 +116,7 @@ void layer_surface_handle_configure(void *data,
   }
 }
 
-void layer_surface_handle_closed(void *data,
-                                 struct zwlr_layer_surface_v1 *layer_surface) {}
-
 const struct zwlr_layer_surface_v1_listener layer_surface_listener = {
     .configure = layer_surface_handle_configure,
-    .closed = layer_surface_handle_closed,
+    .closed = noop,
 };

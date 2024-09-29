@@ -16,6 +16,7 @@
 void gl_message_callback(unsigned int source, unsigned int err_type,
                          unsigned int id, unsigned int severity, int length,
                          const char *message, const void *data) {
+  (void)data;
   printf("%d %d %d %d %d %s\n", source, err_type, id, severity, length,
          message);
 }
@@ -189,28 +190,26 @@ int egl_deinit(Egl *egl) {
   return 0;
 }
 
-EglSurface egl_surface_init(Egl *egl, struct wl_surface *wl_surface,
-                            int size[2]) {
+int egl_surface_init(EglSurface *egl_surface, Egl *egl,
+                     struct wl_surface *wl_surface, int size[2]) {
   struct wl_egl_window *egl_window =
       wl_egl_window_create(wl_surface, size[0], size[1]);
 
   EGLSurface surface = eglCreatePlatformWindowSurface(egl->display, egl->config,
                                                       egl_window, NULL);
-  EglSurface egl_surface = {
-      .window = egl_window,
-      .surface = surface,
-      .display = &egl->display,
-      .config = &egl->config,
-      .context = &egl->context,
-      .main_shader_program = &egl->main_shader_program,
-  };
+  egl_surface->window = egl_window;
+  egl_surface->surface = surface;
+  egl_surface->display = &egl->display;
+  egl_surface->config = &egl->config;
+  egl_surface->context = &egl->context;
+  egl_surface->main_shader_program = &egl->main_shader_program;
 
-  if (egl_surface.window == NULL || egl_surface.surface == EGL_NO_SURFACE) {
+  if (egl_surface->window == NULL || egl_surface->surface == EGL_NO_SURFACE) {
     printf("Failed to create egl window or surface");
-    exit(1);
+    return -1;
   }
 
-  return egl_surface;
+  return 0;
 }
 
 void egl_surface_deinit(EglSurface *egl_surface) {

@@ -20,4 +20,4 @@ typedef struct {
   Character char_info[LENGTH];
 } Text;
 
-Text text_init(Config *config);
+int text_init(Text *text, Config *config);

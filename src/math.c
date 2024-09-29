@@ -19,7 +19,7 @@ void math_orthographic_projection(Mat4 *mat4, float left, float right,
 
   (*mat4)[3][0] = -(right + left) / (right - left);
   (*mat4)[3][1] = -(top + bottom) / (top - bottom);
-  (*mat4)[3][2] = (1 + 0) / -1;
+  (*mat4)[3][2] = -1;
   (*mat4)[3][3] = 1;
 }
 

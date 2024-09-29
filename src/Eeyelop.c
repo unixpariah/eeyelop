@@ -14,26 +14,25 @@
 #include <wayland-client-protocol.h>
 #include <wlr-layer-shell-unstable-v1-client-protocol.h>
 
-Eeyelop eeyelop_init(struct wl_display *display) {
+int eeyelop_init(Eeyelop *eeyelop, struct wl_display *display) {
+  eeyelop->compositor = NULL;
+  eeyelop->layer_shell = NULL;
+  eeyelop->outputs = array_list_init(sizeof(Output));
+  eeyelop->notifications = array_list_init(sizeof(Notification));
+  eeyelop->config = config_init();
+  eeyelop->seat = seat_init();
 
-  Eeyelop eeyelop = {
-      .compositor = NULL,
-      .layer_shell = NULL,
-      .outputs = array_list_init(sizeof(Output)),
-      .notifications = array_list_init(sizeof(Notification)),
-      .config = config_init(),
-      .seat = seat_init(),
-  };
-
-  if (egl_init(&eeyelop.egl, display) == 1) {
+  if (egl_init(&eeyelop->egl, display) == -1) {
     EGLint error = eglGetError();
     printf("Failed to initialize egl with error: 0x%x\n", error);
-    exit(1);
+    return -1;
   };
 
-  eeyelop.text = text_init(&eeyelop.config);
+  if (text_init(&eeyelop->text, &eeyelop->config) == -1) {
+    return -1;
+  }
 
-  return eeyelop;
+  return 0;
 }
 
 void eeyelop_deinit(Eeyelop *eeyelop) {

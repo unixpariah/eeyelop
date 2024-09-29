@@ -56,8 +56,12 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
     zwlr_layer_surface_v1_set_keyboard_interactivity(
         layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
 
-    EglSurface egl_surface =
-        egl_surface_init(&eeyelop->egl, surface, (int[2]){1, 1});
+    EglSurface egl_surface = {0};
+    if (egl_surface_init(&egl_surface, &eeyelop->egl, surface,
+                         (int[2]){1, 1}) == -1) {
+      printf("Failed to initialize egl_surface");
+      return;
+    }
 
     Output output =
         output_init(egl_surface, surface, layer_surface, wl_output, name);
@@ -66,7 +70,7 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
 
     if (array_list_append(&eeyelop->outputs, &output) == -1) {
       printf("Out of memory\n");
-      exit(1);
+      return;
     };
 
     wl_output_add_listener(wl_output, &output_listener,
@@ -76,6 +80,8 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
 
 void handle_global_remove(void *data, struct wl_registry *registry,
                           uint32_t name) {
+  (void)registry;
+
   Eeyelop *eeyelop = data;
   for (int i = 0; i < eeyelop->outputs.len; i++) {
     Output *output = (Output *)eeyelop->outputs.items[i];
@@ -154,7 +160,10 @@ int main(void) {
     return EXIT_FAILURE;
   }
 
-  Eeyelop eeyelop = eeyelop_init(display);
+  Eeyelop eeyelop = {0};
+  if (eeyelop_init(&eeyelop, display) == -1) {
+    return EXIT_FAILURE;
+  }
 
   struct wl_registry *registry = wl_display_get_registry(display);
 

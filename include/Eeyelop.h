@@ -19,7 +19,7 @@ typedef struct {
   Text text;
 } Eeyelop;
 
-Eeyelop eeyelop_init(struct wl_display *display);
+int eeyelop_init(Eeyelop *, struct wl_display *display);
 
 void eeyelop_deinit(Eeyelop *eeyelop);
 

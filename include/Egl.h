@@ -29,7 +29,7 @@ typedef struct {
   GLuint *main_shader_program;
 } EglSurface;
 
-EglSurface egl_surface_init(Egl *, struct wl_surface *, int[2]);
+int egl_surface_init(EglSurface *, Egl *, struct wl_surface *, int[2]);
 
 void egl_surface_deinit(EglSurface *);
 

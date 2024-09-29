@@ -32,6 +32,8 @@ static void noop() {}
 void pointer_handle_motion(void *data, struct wl_pointer *pointer,
                            uint32_t serial, wl_fixed_t surface_x,
                            wl_fixed_t surface_y) {
+  (void)pointer, (void)serial;
+
   Eeyelop *eeyelop = data;
   eeyelop->seat.pointer.x = wl_fixed_to_int(surface_x);
   eeyelop->seat.pointer.y = wl_fixed_to_int(surface_y);
@@ -40,6 +42,8 @@ void pointer_handle_motion(void *data, struct wl_pointer *pointer,
 void pointer_handle_button(void *data, struct wl_pointer *pointer,
                            uint32_t serial, uint32_t time, uint32_t button,
                            uint32_t button_state) {
+  (void)pointer, (void)serial, (void)time, (void)button;
+
   Eeyelop *eeyelop = data;
   for (int i = 0; i < eeyelop->notifications.len; i++) {
     Notification *notification =

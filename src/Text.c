@@ -43,48 +43,49 @@ int character_init(Character *character, FT_Face face, int key) {
 
 int get_font_path(char **font_path_ptr, const char *font_name) {
   if (!FcInit()) {
-    printf("Failed to initialize fontconfig\n");
+    printf("Failed to initialize fontconfig.\n");
     return -1;
   }
 
   FcConfig *config = FcInitLoadConfigAndFonts();
   if (config == NULL) {
-    printf("Failed to initialize fontconfig\n");
+    printf("Failed to load fontconfig configuration.\n");
     return -1;
   }
 
   FcPattern *pattern = FcNameParse((const FcChar8 *)font_name);
   if (pattern == NULL) {
-    printf("Failed to parse name %s\n", font_name);
+    printf("Failed to parse font name '%s'.\n", font_name);
     return -1;
   }
 
   FcDefaultSubstitute(pattern);
   if (!FcConfigSubstitute(config, pattern, FcMatchPattern)) {
-    printf("Failed to do something with substitute\n");
+    printf("Failed to substitute pattern.\n");
     return -1;
-  };
+  }
 
   FcResult result = {0};
   FcPattern *match = FcFontMatch(config, pattern, &result);
   if (match == NULL) {
-    printf("Failed to find a font match\n");
+    printf("No matching font found for '%s'.\n", font_name);
     return -1;
   }
 
   FcChar8 *font_path = NULL;
   if (FcPatternGetString(match, FC_FILE, 0, &font_path) != FcResultMatch) {
-    printf("Match not found\n");
+    printf("Failed to retrieve font path.\n");
     return -1;
   }
 
   if (font_path == NULL) {
+    printf("Font path is NULL.\n");
     return -1;
   }
 
   *font_path_ptr = (char *)malloc(strlen((const char *)font_path) + 1);
-  if (font_path_ptr == NULL) {
-    printf("Out of memory\n");
+  if (*font_path_ptr == NULL) {
+    printf("OOM\n");
     return -1;
   }
 
@@ -99,41 +100,36 @@ int get_font_path(char **font_path_ptr, const char *font_name) {
   return 0;
 }
 
-Text text_init(Config *config) {
-  Text text = {
-      .letter_map = {0},
-      .transform = {0},
-      .char_info = {0},
-      .index = 0,
-      .scale = config->font.size / 256,
-      .scale_mat = {0},
-  };
-  math_scale(&text.scale_mat, (float)config->font.size,
+int text_init(Text *text, Config *config) {
+  text->index = 0;
+  text->scale = config->font.size / 256;
+  math_scale(&text->scale_mat, (float)config->font.size,
              (float)config->font.size, 0);
 
   FT_Library ft = NULL;
   if (FT_Init_FreeType(&ft)) {
     printf("Failed to initialize freetype2\n");
+    return -1;
   }
 
   FT_Face face = NULL;
 
   char *font_path = NULL;
   if (get_font_path(&font_path, config->font.name) == -1) {
-    printf("\n");
-    exit(1);
+    return -1;
   };
 
   if (FT_New_Face(ft, font_path, 0, &face)) {
-    printf("\n");
-    exit(1);
+    printf("Failed to create new freetype face.\n");
+    free(font_path);
+    return -1;
   }
 
   free(font_path);
 
   if (FT_Set_Pixel_Sizes(face, 256, 256)) {
-    printf("\n");
-    exit(1);
+    printf("Failed to set face pixel size\n");
+    return -1;
   }
 
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -147,8 +143,11 @@ Text text_init(Config *config) {
                0, GL_RED, GL_UNSIGNED_BYTE, NULL);
 
   for (int i = 0; i < 256; i++) {
-    if (character_init(&text.char_info[i], face, i) == -1) {
-      printf("Failed to initialize character\n");
+    if (character_init(&text->char_info[i], face, i) == -1) {
+      char str[2];
+      str[0] = (char)i;
+      str[1] = '\0';
+      printf("Failed to initialize character %s\n", str);
     }
   }
 
@@ -157,5 +156,5 @@ Text text_init(Config *config) {
   FT_Done_Face(face);
   FT_Done_FreeType(ft);
 
-  return text;
+  return 0;
 }
