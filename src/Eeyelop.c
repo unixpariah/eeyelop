@@ -52,6 +52,7 @@ void layer_surface_handle_configure(void *data,
   GLint location =
       glGetUniformLocation(eeyelop->egl.main_shader_program, "projection");
   glUniformMatrix4fv(location, 1, GL_FALSE, (const GLfloat *)mat4);
+  glViewport(0, 0, (int)width, (int)height);
 }
 
 #pragma GCC diagnostic push
@@ -78,7 +79,7 @@ Eeyelop eeyelop_init(void) {
   return eeyelop;
 }
 
-void eeyelop_config_update(Eeyelop *eeyelop) {
+void eeyelop_config_apply(Eeyelop *eeyelop) {
   glUseProgram(eeyelop->egl.main_shader_program);
   GLint location =
       glGetUniformLocation(eeyelop->egl.main_shader_program, "color");
@@ -161,16 +162,6 @@ int eeyelop_surface_init(Eeyelop *eeyelop) {
   struct wl_surface *wl_surface =
       wl_compositor_create_surface(eeyelop->compositor);
 
-  struct wl_egl_window *egl_window = wl_egl_window_create(wl_surface, 1, 1);
-
-  EGLSurface egl_surface = eglCreatePlatformWindowSurface(
-      eeyelop->egl.display, eeyelop->egl.config, egl_window, NULL);
-
-  if (egl_window == NULL || egl_surface == EGL_NO_SURFACE) {
-    printf("Failed to create egl window or surface");
-    return -1;
-  }
-
   eeyelop->surface.wl_surface = wl_surface;
   struct zwlr_layer_surface_v1 *layer_surface = create_layer_surface(eeyelop);
 
@@ -188,8 +179,6 @@ int eeyelop_surface_init(Eeyelop *eeyelop) {
 
   wl_surface_commit(wl_surface);
 
-  eeyelop->surface.egl_window = egl_window;
-  eeyelop->surface.egl_surface = egl_surface;
   eeyelop->surface.layer = layer_surface;
 
   return 0;
@@ -314,6 +303,17 @@ int eeyelop_egl_init(Eeyelop *eeyelop, struct wl_display *display) {
     return -1;
   }
 
+  struct wl_egl_window *egl_window =
+      wl_egl_window_create(eeyelop->surface.wl_surface, 1, 1);
+
+  EGLSurface egl_surface =
+      eglCreatePlatformWindowSurface(egl_display, egl_config, egl_window, NULL);
+
+  if (egl_window == NULL || egl_surface == EGL_NO_SURFACE) {
+    printf("Failed to create egl window or surface\n");
+    return -1;
+  }
+
   if (!eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE,
                       egl_context)) {
     return -1;
@@ -367,6 +367,8 @@ int eeyelop_egl_init(Eeyelop *eeyelop, struct wl_display *display) {
   eeyelop->egl.VAO = VAO;
   eeyelop->egl.VBO = VBO;
   eeyelop->egl.EBO = EBO;
+  eeyelop->surface.egl_window = egl_window;
+  eeyelop->surface.egl_surface = egl_surface;
 
   return 0;
 }

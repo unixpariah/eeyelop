@@ -44,7 +44,7 @@ Eeyelop eeyelop_init(void);
 
 int eeyelop_surface_init(Eeyelop *);
 
-void eeyelop_config_update(Eeyelop *);
+void eeyelop_config_apply(Eeyelop *);
 
 int eeyelop_egl_init(Eeyelop *eeyelop, struct wl_display *);
 

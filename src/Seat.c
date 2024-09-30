@@ -2,6 +2,7 @@
 #include "Eeyelop.h"
 #include "wayland-client-protocol.h"
 #include "wayland-util.h"
+#include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include <Notification.h>
 #include <Seat.h>
 #include <stdint.h>
@@ -63,6 +64,17 @@ void pointer_handle_button(void *data, struct wl_pointer *pointer,
                           eeyelop->config.margin.top * (j + 1) +
                           eeyelop->config.margin.bottom * j;
       }
+
+      int total_width = eeyelop->config.width + eeyelop->config.margin.left +
+                        eeyelop->config.margin.right;
+
+      int total_height = (eeyelop->config.height + eeyelop->config.margin.top +
+                          eeyelop->config.margin.bottom) *
+                         eeyelop->notifications.len;
+
+      zwlr_layer_surface_v1_set_size(eeyelop->surface.layer, total_width,
+                                     total_height);
+      wl_surface_commit(eeyelop->surface.wl_surface);
     }
   }
 }

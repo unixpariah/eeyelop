@@ -1,3 +1,4 @@
+#include "wayland-egl-core.h"
 #define GL_GLEXT_PROTOTYPES 1
 
 #include "ArrayList.h"
@@ -137,9 +138,8 @@ int main(void) {
     return EXIT_FAILURE;
   }
 
-  for (int i = 0; i < 5; i++) {
-    Notification notification = notification_init(&eeyelop.config, i);
-    array_list_append(&eeyelop.notifications, &notification);
+  if (eeyelop_surface_init(&eeyelop) == -1) {
+    return EXIT_FAILURE;
   }
 
   if (eeyelop_egl_init(&eeyelop, display) == -1) {
@@ -148,14 +148,16 @@ int main(void) {
     return EXIT_FAILURE;
   };
 
+  for (int i = 0; i < 5; i++) {
+    Notification notification = notification_init(&eeyelop.config, i);
+    array_list_append(&eeyelop.notifications, &notification);
+  }
+
+  eeyelop_config_apply(&eeyelop);
+
   if (text_init(&eeyelop.text, &eeyelop.config) == -1) {
     return EXIT_FAILURE;
   }
-
-  if (eeyelop_surface_init(&eeyelop) == -1) {
-    return EXIT_FAILURE;
-  }
-  eeyelop_config_update(&eeyelop);
 
   int total_width = eeyelop.config.width + eeyelop.config.margin.left +
                     eeyelop.config.margin.right;
@@ -166,6 +168,7 @@ int main(void) {
 
   zwlr_layer_surface_v1_set_size(eeyelop.surface.layer, total_width,
                                  total_height);
+
   wl_surface_commit(eeyelop.surface.wl_surface);
 
   wl_display_roundtrip(display);
