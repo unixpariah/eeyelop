@@ -45,6 +45,4 @@ typedef struct {
 
 Config config_init(void);
 
-void config_update(Config *, Output *);
-
 #endif // CONFIG_H

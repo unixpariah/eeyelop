@@ -3,7 +3,6 @@
 #include "ArrayList.h"
 #include "EGL/eglplatform.h"
 #include "Eeyelop.h"
-#include "Egl.h"
 #include "GL/glext.h"
 #include "Output.h"
 #include "Seat.h"
@@ -37,36 +36,7 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
     struct wl_output *wl_output =
         wl_registry_bind(registry, name, &wl_output_interface, version);
 
-    struct wl_surface *surface =
-        wl_compositor_create_surface(eeyelop->compositor);
-
-    struct zwlr_layer_surface_v1 *layer_surface =
-        zwlr_layer_shell_v1_get_layer_surface(eeyelop->layer_shell, surface,
-                                              wl_output, 3, "eeyelop");
-
-    zwlr_layer_surface_v1_add_listener(layer_surface, &layer_surface_listener,
-                                       eeyelop);
-
-    zwlr_layer_surface_v1_set_anchor(layer_surface,
-                                     ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP |
-                                         ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM |
-                                         ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT |
-                                         ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
-    zwlr_layer_surface_v1_set_exclusive_zone(layer_surface, -1);
-    zwlr_layer_surface_v1_set_keyboard_interactivity(
-        layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
-
-    EglSurface egl_surface = {0};
-    if (egl_surface_init(&egl_surface, &eeyelop->egl, surface,
-                         (int[2]){1, 1}) == -1) {
-      printf("Failed to initialize egl_surface");
-      return;
-    }
-
-    Output output =
-        output_init(egl_surface, surface, layer_surface, wl_output, name);
-
-    wl_surface_commit(surface);
+    Output output = output_init(wl_output, name);
 
     if (array_list_append(&eeyelop->outputs, &output) == -1) {
       printf("Out of memory\n");
@@ -124,31 +94,24 @@ void render_pane(Eeyelop *eeyelop, int index) {
 }
 
 int render(Eeyelop *eeyelop) {
-  for (int i = 0; i < eeyelop->outputs.len; i++) {
-    Output *output = (Output *)eeyelop->outputs.items[i];
-    if (strcmp(output->info.name, eeyelop->config.output) != 0) {
-      continue;
-    }
+  if (!eglMakeCurrent(eeyelop->egl.display, eeyelop->surface.egl_surface,
+                      eeyelop->surface.egl_surface, eeyelop->egl.context)) {
+    return -1;
+  };
 
-    if (!eglMakeCurrent(*output->egl.display, output->egl.surface,
-                        output->egl.surface, *output->egl.context)) {
-      return -1;
-    };
+  glClear(GL_COLOR_BUFFER_BIT);
+  glClearColor(1, 0, 0, 1);
 
-    glClear(GL_COLOR_BUFFER_BIT);
-    glClearColor(0, 0, 0, 0);
-
-    glUseProgram(eeyelop->egl.main_shader_program);
-    for (int i = 0; i < eeyelop->notifications.len; i++) {
-      Notification *notification =
-          (Notification *)eeyelop->notifications.items[i];
-      notification_render(notification, &eeyelop->egl);
-    }
-
-    if (!eglSwapBuffers(*output->egl.display, output->egl.surface)) {
-      return -1;
-    };
+  glUseProgram(eeyelop->egl.main_shader_program);
+  for (int i = 0; i < eeyelop->notifications.len; i++) {
+    Notification *notification =
+        (Notification *)eeyelop->notifications.items[i];
+    notification_render(notification, &eeyelop->egl);
   }
+
+  if (!eglSwapBuffers(eeyelop->egl.display, eeyelop->surface.egl_surface)) {
+    return -1;
+  };
 
   return 0;
 }
@@ -160,14 +123,12 @@ int main(void) {
     return EXIT_FAILURE;
   }
 
-  Eeyelop eeyelop = {0};
-  if (eeyelop_init(&eeyelop, display) == -1) {
-    return EXIT_FAILURE;
-  }
+  Eeyelop eeyelop = eeyelop_init();
 
   struct wl_registry *registry = wl_display_get_registry(display);
 
   wl_registry_add_listener(registry, &registry_listener, &eeyelop);
+
   wl_display_dispatch(display);
   wl_display_roundtrip(display);
 
@@ -181,21 +142,31 @@ int main(void) {
     array_list_append(&eeyelop.notifications, &notification);
   }
 
-  for (int i = 0; i < eeyelop.outputs.len; i++) {
-    Output *output = (Output *)eeyelop.outputs.items[i];
-    if (strcmp(output->info.name, eeyelop.config.output) != 0) {
-      continue;
-    }
+  if (eeyelop_egl_init(&eeyelop, display) == -1) {
+    EGLint error = eglGetError();
+    printf("Failed to initialize egl with error: 0x%x\n", error);
+    return -1;
+  };
 
-    int total_width = eeyelop.config.width + eeyelop.config.margin.left +
-                      eeyelop.config.margin.right;
-
-    int total_height = (eeyelop.config.height + eeyelop.config.margin.top +
-                        eeyelop.config.margin.bottom) *
-                       eeyelop.notifications.len;
-
-    output_surface_resize(output, total_width, total_height);
+  if (text_init(&eeyelop.text, &eeyelop.config) == -1) {
+    return -1;
   }
+
+  eeyelop_surface_init(&eeyelop);
+  eeyelop_config_update(&eeyelop);
+
+  int total_width = eeyelop.config.width + eeyelop.config.margin.left +
+                    eeyelop.config.margin.right;
+
+  int total_height = (eeyelop.config.height + eeyelop.config.margin.top +
+                      eeyelop.config.margin.bottom) *
+                     eeyelop.notifications.len;
+
+  zwlr_layer_surface_v1_set_size(eeyelop.surface.layer, total_width,
+                                 total_height);
+  wl_surface_commit(eeyelop.surface.wl_surface);
+
+  wl_display_roundtrip(display);
 
   if (render(&eeyelop) == -1) {
     EGLint error = eglGetError();

@@ -1,7 +1,7 @@
 #define GL_GLEXT_PROTOTYPES 1
 
 #include "Config.h"
-#include "Egl.h"
+#include "Eeyelop.h"
 #include "GL/glext.h"
 #include <GL/gl.h>
 #include <Notification.h>

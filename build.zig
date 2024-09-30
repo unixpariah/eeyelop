@@ -61,7 +61,6 @@ pub fn build(b: *std.Build) !void {
         "src/Output.c",
         "src/main.c",
         "src/Eeyelop.c",
-        "src/Egl.c",
         "src/Config.c",
         "src/Seat.c",
         "src/math.c",
