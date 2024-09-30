@@ -137,6 +137,26 @@ void eeyelop_config_update(Eeyelop *eeyelop) {
   zwlr_layer_surface_v1_set_anchor(eeyelop->surface.layer, anchor);
 }
 
+struct zwlr_layer_surface_v1 *create_layer_surface(Eeyelop *eeyelop) {
+  if (strcmp(eeyelop->config.output, "") != 0) {
+    for (int i = 0; i < eeyelop->outputs.len; i++) {
+      Output *output = (Output *)eeyelop->outputs.items[i];
+
+      if (strcmp(eeyelop->config.output, output->info.name) == 0) {
+        return zwlr_layer_shell_v1_get_layer_surface(
+            eeyelop->layer_shell, eeyelop->surface.wl_surface,
+            output->wl_output, 3, "eeyelop");
+      }
+    }
+
+    printf("Output %s doesn't exist, spawning layer on focused output\n",
+           eeyelop->config.output);
+  }
+
+  return zwlr_layer_shell_v1_get_layer_surface(
+      eeyelop->layer_shell, eeyelop->surface.wl_surface, NULL, 3, "eeyelop");
+}
+
 int eeyelop_surface_init(Eeyelop *eeyelop) {
   struct wl_surface *wl_surface =
       wl_compositor_create_surface(eeyelop->compositor);
@@ -151,20 +171,8 @@ int eeyelop_surface_init(Eeyelop *eeyelop) {
     return -1;
   }
 
-  struct zwlr_layer_surface_v1 *layer_surface = NULL;
-  if (strcmp(eeyelop->config.output, "") == 0) {
-    layer_surface = zwlr_layer_shell_v1_get_layer_surface(
-        eeyelop->layer_shell, wl_surface, NULL, 3, "eeyelop");
-  } else {
-    for (int i = 0; i < eeyelop->outputs.len; i++) {
-      Output *output = (Output *)eeyelop->outputs.items[i];
-
-      if (strcmp(eeyelop->config.output, output->info.name) == 0) {
-        layer_surface = zwlr_layer_shell_v1_get_layer_surface(
-            eeyelop->layer_shell, wl_surface, output->wl_output, 3, "eeyelop");
-      }
-    }
-  }
+  eeyelop->surface.wl_surface = wl_surface;
+  struct zwlr_layer_surface_v1 *layer_surface = create_layer_surface(eeyelop);
 
   zwlr_layer_surface_v1_add_listener(layer_surface, &layer_surface_listener,
                                      eeyelop);
@@ -180,7 +188,6 @@ int eeyelop_surface_init(Eeyelop *eeyelop) {
 
   wl_surface_commit(wl_surface);
 
-  eeyelop->surface.wl_surface = wl_surface;
   eeyelop->surface.egl_window = egl_window;
   eeyelop->surface.egl_surface = egl_surface;
   eeyelop->surface.layer = layer_surface;

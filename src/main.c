@@ -145,14 +145,16 @@ int main(void) {
   if (eeyelop_egl_init(&eeyelop, display) == -1) {
     EGLint error = eglGetError();
     printf("Failed to initialize egl with error: 0x%x\n", error);
-    return -1;
+    return EXIT_FAILURE;
   };
 
   if (text_init(&eeyelop.text, &eeyelop.config) == -1) {
-    return -1;
+    return EXIT_FAILURE;
   }
 
-  eeyelop_surface_init(&eeyelop);
+  if (eeyelop_surface_init(&eeyelop) == -1) {
+    return EXIT_FAILURE;
+  }
   eeyelop_config_update(&eeyelop);
 
   int total_width = eeyelop.config.width + eeyelop.config.margin.left +
