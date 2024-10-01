@@ -2,7 +2,6 @@
 #include "Eeyelop.h"
 #include "wayland-client-protocol.h"
 #include "wayland-util.h"
-#include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include <Notification.h>
 #include <Seat.h>
 #include <stdint.h>
@@ -50,31 +49,10 @@ void pointer_handle_button(void *data, struct wl_pointer *pointer,
     Notification *notification =
         (Notification *)eeyelop->notifications.items[i];
 
-    if (button_state == 0 && eeyelop->seat.pointer.x > notification->x &&
-        eeyelop->seat.pointer.x < notification->x + notification->width &&
-        eeyelop->seat.pointer.y > notification->y &&
-        eeyelop->seat.pointer.y < notification->y + notification->height) {
-      array_list_ordered_remove(&eeyelop->notifications, i);
-
-      for (int j = i; j < eeyelop->notifications.len; j++) {
-        Notification *notification =
-            (Notification *)eeyelop->notifications.items[j];
-
-        notification->y = notification->height * j +
-                          eeyelop->config.margin.top * (j + 1) +
-                          eeyelop->config.margin.bottom * j;
-      }
-
-      int total_width = eeyelop->config.width + eeyelop->config.margin.left +
-                        eeyelop->config.margin.right;
-
-      int total_height = (eeyelop->config.height + eeyelop->config.margin.top +
-                          eeyelop->config.margin.bottom) *
-                         eeyelop->notifications.len;
-
-      zwlr_layer_surface_v1_set_size(eeyelop->surface.layer, total_width,
-                                     total_height);
-      wl_surface_commit(eeyelop->surface.wl_surface);
+    if (button_state == 0 &&
+        notification_contains_coords(notification, eeyelop->seat.pointer.x,
+                                     eeyelop->seat.pointer.y)) {
+      eeyelop_notification_remove(eeyelop, i);
     }
   }
 }

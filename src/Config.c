@@ -14,11 +14,20 @@ Config config_init(void) {
       .output = "",
       .anchor = top_right,
       .layer = overlay,
-      .background_color = {0, 0, 0, 1},
+      .background =
+          {
+              .color = {0, 1, 0, 1},
+          },
+      .border =
+          {
+              .size = 5,
+              .color = {1, 0, 1, 1},
+          },
       .font =
           {
               .name = "JetBrains Mono",
               .size = 16,
+              .color = {1, 1, 1, 1},
           },
   };
 

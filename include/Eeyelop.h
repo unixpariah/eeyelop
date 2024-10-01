@@ -11,7 +11,7 @@
 
 typedef struct {
   GLuint VAO;
-  GLuint VBO;
+  GLuint VBO[2];
   GLuint EBO;
   GLuint main_shader_program;
   GLuint text_shader_program;
@@ -48,7 +48,7 @@ void eeyelop_config_apply(Eeyelop *);
 
 int eeyelop_egl_init(Eeyelop *eeyelop, struct wl_display *);
 
-int eeyelop_egl_deinit(Egl *);
+int egl_deinit(Egl *);
 
 void eeyelop_deinit(Eeyelop *eeyelop);
 

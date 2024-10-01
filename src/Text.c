@@ -1,3 +1,5 @@
+#define GL_GLEXT_PROTOTYPES 1
+
 #include "GL/gl.h"
 #include "GL/glext.h"
 #include "math.h"
@@ -103,8 +105,6 @@ int get_font_path(char **font_path_ptr, const char *font_name) {
 int text_init(Text *text, Config *config) {
   text->index = 0;
   text->scale = config->font.size / 256;
-  math_scale(&text->scale_mat, (float)config->font.size,
-             (float)config->font.size, 0);
 
   FT_Library ft = NULL;
   if (FT_Init_FreeType(&ft)) {
@@ -157,4 +157,59 @@ int text_init(Text *text, Config *config) {
   FT_Done_FreeType(ft);
 
   return 0;
+}
+
+void text_render_call(Text *text_s, GLuint shader_program) {
+  if (text_s->index == 0) {
+    return;
+  }
+
+  float color[4] = {0, 0, 0, 1};
+  GLint color_location = glGetUniformLocation(shader_program, "color");
+  GLint transform_location = glGetUniformLocation(shader_program, "transform");
+  GLint letterMap_location = glGetUniformLocation(shader_program, "letterMap");
+
+  glUniform4fv(color_location, 1, &color[0]);
+  glUniformMatrix4fv(transform_location, text_s->index, GL_FALSE,
+                     &text_s->transform[0][0][0]);
+  glUniform1iv(letterMap_location, text_s->index, &text_s->letter_map[0]);
+  glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, text_s->index);
+
+  text_s->index = 0;
+}
+
+void text_place(Text *text_s, const char *text, int x, int y,
+                GLuint shader_program) {
+  int text_len = (int)strlen(text);
+  if (text_len == 0) {
+    return;
+  }
+
+  int move = 0;
+  for (int i = 0; i < text_len; i++) {
+    char ch = text[i];
+    Character character = text_s->char_info[(int)text[i]];
+
+    if (ch == '\n') {
+      continue;
+    }
+
+    if (ch == ' ') {
+      x += character.advance[0] * text_s->scale;
+      continue;
+    }
+
+    int x_pos = x + character.bearing[0] * text_s->scale + move;
+    int y_pos = y + character.bearing[1] * text_s->scale;
+
+    math_transform(&text_s->transform[text_s->index], 16, (float)x_pos,
+                   (float)y_pos);
+    text_s->letter_map[text_s->index] = character.texture_id;
+
+    move += character.advance[0] * text_s->scale;
+    text_s->index++;
+    if (text_s->index == LENGTH) {
+      text_render_call(text_s, shader_program);
+    }
+  }
 }

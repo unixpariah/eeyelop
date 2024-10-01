@@ -30,7 +30,6 @@ void layer_surface_handle_configure(void *data,
   (void)layer_surface;
 
   Eeyelop *eeyelop = data;
-  zwlr_layer_surface_v1_ack_configure(eeyelop->surface.layer, serial);
 
   if (eeyelop->surface.configured && eeyelop->surface.width == (int)width &&
       eeyelop->surface.height == (int)height) {
@@ -48,11 +47,23 @@ void layer_surface_handle_configure(void *data,
   Mat4 mat4;
   math_orthographic_projection(&mat4, 0, (float)width, 0, (float)height);
 
-  glUseProgram(eeyelop->egl.main_shader_program);
-  GLint location =
-      glGetUniformLocation(eeyelop->egl.main_shader_program, "projection");
-  glUniformMatrix4fv(location, 1, GL_FALSE, (const GLfloat *)mat4);
-  glViewport(0, 0, (int)width, (int)height);
+  {
+    glUseProgram(eeyelop->egl.main_shader_program);
+    GLint location =
+        glGetUniformLocation(eeyelop->egl.main_shader_program, "projection");
+    glUniformMatrix4fv(location, 1, GL_FALSE, (const GLfloat *)mat4);
+    glViewport(0, 0, (int)width, (int)height);
+  }
+
+  {
+    glUseProgram(eeyelop->egl.text_shader_program);
+    GLint location =
+        glGetUniformLocation(eeyelop->egl.text_shader_program, "projection");
+    glUniformMatrix4fv(location, 1, GL_FALSE, (const GLfloat *)mat4);
+    glViewport(0, 0, (int)width, (int)height);
+  }
+
+  zwlr_layer_surface_v1_ack_configure(eeyelop->surface.layer, serial);
 }
 
 #pragma GCC diagnostic push
@@ -80,11 +91,6 @@ Eeyelop eeyelop_init(void) {
 }
 
 void eeyelop_config_apply(Eeyelop *eeyelop) {
-  glUseProgram(eeyelop->egl.main_shader_program);
-  GLint location =
-      glGetUniformLocation(eeyelop->egl.main_shader_program, "color");
-  glUniform4fv(location, 1, (const GLfloat *)&eeyelop->config.background_color);
-
   uint32_t layer = 0;
   switch (eeyelop->config.layer) {
   case background:
@@ -314,8 +320,7 @@ int eeyelop_egl_init(Eeyelop *eeyelop, struct wl_display *display) {
     return -1;
   }
 
-  if (!eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE,
-                      egl_context)) {
+  if (!eglMakeCurrent(egl_display, egl_surface, egl_surface, egl_context)) {
     return -1;
   }
 
@@ -331,22 +336,38 @@ int eeyelop_egl_init(Eeyelop *eeyelop, struct wl_display *display) {
     return -1;
   };
 
+  glValidateProgram(main_shader_program);
+
   GLuint text_shader_program = 0;
   if (create_shader_program(&text_shader_program, text_vertex_source,
                             text_fragment_source) == -1) {
     return -1;
   };
 
+  glValidateProgram(text_shader_program);
+
   GLuint VAO = 0;
-  GLuint VBO = 0;
+  GLuint VBO[2] = {0};
   GLuint EBO = 0;
 
   glGenVertexArrays(1, &VAO);
   glBindVertexArray(VAO);
   glEnableVertexAttribArray(0);
 
-  glGenBuffers(1, &VBO);
+  glGenBuffers(2, VBO);
   glGenBuffers(1, &EBO);
+
+  // clang-format off
+  float vertices [8] = {
+      0, 0,
+      1, 0,
+      0, 1,
+      1, 1,
+  };
+  // clang-format on
+
+  glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
 
   // clang-format off
   int indices[6] = {
@@ -365,7 +386,8 @@ int eeyelop_egl_init(Eeyelop *eeyelop, struct wl_display *display) {
   eeyelop->egl.main_shader_program = main_shader_program;
   eeyelop->egl.text_shader_program = text_shader_program;
   eeyelop->egl.VAO = VAO;
-  eeyelop->egl.VBO = VBO;
+  eeyelop->egl.VBO[0] = VBO[0];
+  eeyelop->egl.VBO[1] = VBO[1];
   eeyelop->egl.EBO = EBO;
   eeyelop->surface.egl_window = egl_window;
   eeyelop->surface.egl_surface = egl_surface;
@@ -389,7 +411,7 @@ int egl_deinit(Egl *egl) {
   }
 
   glDeleteBuffers(1, &egl->VAO);
-  glDeleteBuffers(1, &egl->VBO);
+  glDeleteBuffers(2, egl->VBO);
   glDeleteBuffers(1, &egl->EBO);
 
   return 0;

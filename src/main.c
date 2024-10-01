@@ -1,4 +1,3 @@
-#include "wayland-egl-core.h"
 #define GL_GLEXT_PROTOTYPES 1
 
 #include "ArrayList.h"
@@ -68,32 +67,6 @@ static const struct wl_registry_listener registry_listener = {
     .global_remove = handle_global_remove,
 };
 
-void render_pane(Eeyelop *eeyelop, int index) {
-  int x = eeyelop->config.margin.left;
-  int y =
-      eeyelop->config.height * index + eeyelop->config.margin.top * (index + 1);
-
-  if (index > 0) {
-    y += eeyelop->config.margin.bottom * index;
-  }
-
-  // clang-format off
-  int vertices[8] = {
-      x,                                                    y,
-      eeyelop->config.width - eeyelop->config.margin.right, y,
-      x,                                                    y + eeyelop->config.height,
-      eeyelop->config.width - eeyelop->config.margin.right, y + eeyelop->config.height,
-  };
-  // clang-format on
-
-  glBindBuffer(GL_ARRAY_BUFFER, eeyelop->egl.VBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
-
-  glBindBuffer(GL_ARRAY_BUFFER, eeyelop->egl.VBO);
-  glVertexAttribPointer(0, 2, GL_INT, GL_FALSE, 0, NULL);
-  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
-}
-
 int render(Eeyelop *eeyelop) {
   if (!eglMakeCurrent(eeyelop->egl.display, eeyelop->surface.egl_surface,
                       eeyelop->surface.egl_surface, eeyelop->egl.context)) {
@@ -101,13 +74,12 @@ int render(Eeyelop *eeyelop) {
   };
 
   glClear(GL_COLOR_BUFFER_BIT);
-  glClearColor(1, 0, 0, 1);
+  glClearColor(0, 0, 0, 0);
 
-  glUseProgram(eeyelop->egl.main_shader_program);
   for (int i = 0; i < eeyelop->notifications.len; i++) {
     Notification *notification =
         (Notification *)eeyelop->notifications.items[i];
-    notification_render(notification, &eeyelop->egl);
+    eeyelop_notification_render(eeyelop, notification);
   }
 
   if (!eglSwapBuffers(eeyelop->egl.display, eeyelop->surface.egl_surface)) {
@@ -149,7 +121,7 @@ int main(void) {
   };
 
   for (int i = 0; i < 5; i++) {
-    Notification notification = notification_init(&eeyelop.config, i);
+    Notification notification = notification_init(&eeyelop.config, "test", i);
     array_list_append(&eeyelop.notifications, &notification);
   }
 

@@ -23,6 +23,10 @@ enum Layer {
 };
 
 typedef struct {
+  float color[4];
+} Background;
+
+typedef struct {
   int top;
   int left;
   int right;
@@ -30,17 +34,26 @@ typedef struct {
 } Margin;
 
 typedef struct {
-  float background_color[4];
+  float color[4];
+  float size;
+} Border;
+
+typedef struct {
+  const char *name;
+  int size;
+  float color[4];
+} Font;
+
+typedef struct {
   int width;
   int height;
   Margin margin;
   char *output;
   enum Anchor anchor;
   enum Layer layer;
-  struct {
-    const char *name;
-    int size;
-  } font;
+  Border border;
+  Font font;
+  Background background;
 } Config;
 
 Config config_init(void);
