@@ -10,16 +10,21 @@ typedef struct {
   void **items;
 } ArrayList;
 
-ArrayList array_list_init(size_t);
+void array_list_init(ArrayList *array_list, size_t elem_size);
 
-void array_list_deinit(ArrayList *);
+int array_list_init_capacity(ArrayList *array_list, size_t elem_size,
+                             int capacity);
 
-int array_list_append(ArrayList *, void *);
+void array_list_deinit(ArrayList *array_list);
 
-void *array_list_swap_remove(ArrayList *, int);
+int array_list_append(ArrayList *array_list, void *item);
 
-void *array_list_ordered_remove(ArrayList *, int);
+void *array_list_swap_remove(ArrayList *array_list, int index);
 
-void *array_list_pop(ArrayList *);
+void *array_list_ordered_remove(ArrayList *array_list, int index);
+
+void *array_list_pop(ArrayList *array_list);
+
+void *array_list_pop_or_null(ArrayList *array_list);
 
 #endif // ARRAY_LIST_H

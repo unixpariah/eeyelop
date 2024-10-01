@@ -3,7 +3,6 @@
 #include "ArrayList.h"
 #include "EGL/eglplatform.h"
 #include "Eeyelop.h"
-#include "GL/glext.h"
 #include "Output.h"
 #include "Seat.h"
 #include "wayland-client-core.h"
@@ -36,9 +35,9 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
     struct wl_output *wl_output =
         wl_registry_bind(registry, name, &wl_output_interface, version);
 
-    Output output = output_init(wl_output, name);
-
-    if (array_list_append(&eeyelop->outputs, &output) == -1) {
+    Output *output = malloc(sizeof(Output));
+    *output = output_init(wl_output, name);
+    if (array_list_append(&eeyelop->outputs, output) == -1) {
       printf("Out of memory\n");
       return;
     };
@@ -121,13 +120,16 @@ int main(void) {
   };
 
   for (int i = 0; i < 5; i++) {
-    Notification notification = notification_init(&eeyelop.config, "test", i);
-    array_list_append(&eeyelop.notifications, &notification);
+    Notification *notification = malloc(sizeof(Notification));
+    *notification = notification_init(&eeyelop.config, "test", i);
+    if (array_list_append(&eeyelop.notifications, notification) == -1) {
+      printf("Out of memory\n");
+    };
   }
 
   eeyelop_config_apply(&eeyelop);
 
-  if (text_init(&eeyelop.text, &eeyelop.config) == -1) {
+  if (text_init(&eeyelop.text, &eeyelop.config.font) == -1) {
     return EXIT_FAILURE;
   }
 

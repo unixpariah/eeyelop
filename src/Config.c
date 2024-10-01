@@ -21,11 +21,11 @@ Config config_init(void) {
       .border =
           {
               .size = 5,
-              .color = {1, 0, 1, 1},
+              .color = {1, (float)0.6, (float)0.2, 1},
           },
       .font =
           {
-              .name = "JetBrains Mono",
+              .name = "Arial",
               .size = 16,
               .color = {1, 1, 1, 1},
           },

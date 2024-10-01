@@ -81,8 +81,8 @@ const struct zwlr_layer_surface_v1_listener layer_surface_listener = {
 Eeyelop eeyelop_init(void) {
   Eeyelop eeyelop = {0};
 
-  eeyelop.outputs = array_list_init(sizeof(Output));
-  eeyelop.notifications = array_list_init(sizeof(Notification));
+  array_list_init(&eeyelop.outputs, sizeof(Output));
+  array_list_init(&eeyelop.notifications, sizeof(Notification));
   eeyelop.config = config_init();
   eeyelop.seat = seat_init();
   eeyelop.surface.configured = false;
@@ -396,22 +396,12 @@ int eeyelop_egl_init(Eeyelop *eeyelop, struct wl_display *display) {
 }
 
 int egl_deinit(Egl *egl) {
-  if (egl->context != EGL_NO_CONTEXT) {
-    eglDestroyContext(egl->display, egl->context);
-  }
-
-  if (egl->display != EGL_NO_DISPLAY) {
-    eglTerminate(egl->display);
-    egl->display = EGL_NO_DISPLAY;
-  }
-
-  if (egl->main_shader_program != 0) {
-    glDeleteProgram(egl->main_shader_program);
-    egl->main_shader_program = 0;
-  }
-
+  eglDestroyContext(egl->display, egl->context);
+  eglTerminate(egl->display);
+  glDeleteProgram(egl->main_shader_program);
+  glDeleteProgram(egl->text_shader_program);
   glDeleteBuffers(1, &egl->VAO);
-  glDeleteBuffers(2, egl->VBO);
+  glDeleteBuffers(2, &egl->VBO[0]);
   glDeleteBuffers(1, &egl->EBO);
 
   return 0;
@@ -430,5 +420,6 @@ void eeyelop_deinit(Eeyelop *eeyelop) {
   eeyelop_surface_deinit(eeyelop);
   array_list_deinit(&eeyelop->outputs);
   egl_deinit(&eeyelop->egl);
+  text_deinit(&eeyelop->text);
   zwlr_layer_surface_v1_destroy(eeyelop->surface.layer);
 }

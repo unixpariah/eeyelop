@@ -124,7 +124,8 @@ pub fn build(b: *std.Build) !void {
     const tidy_step = b.step("tidy", "Run clang-tidy");
     tidy_step.dependOn(&clang_tidy_cmd.step);
 
-    const valgrind_cmd = b.addSystemCommand(&.{ "valgrind", "./zig-out/bin/eeyelop" });
+    const valgrind_cmd = b.addSystemCommand(&.{ "valgrind", "--leak-check=full", "./zig-out/bin/eeyelop" });
+
     const valgrind_step = b.step("valgrind", "Run valgrind");
     valgrind_step.dependOn(&valgrind_cmd.step);
 }

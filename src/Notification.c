@@ -1,3 +1,5 @@
+#include "ArrayList.h"
+#include "wayland-client-protocol.h"
 #define GL_GLEXT_PROTOTYPES 1
 
 #include "Config.h"

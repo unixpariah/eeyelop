@@ -13,11 +13,7 @@
 
 int character_init(Character *character, FT_Face face, int key) {
 
-  if (FT_Load_Char(face, key, FT_LOAD_DEFAULT)) {
-    return -1;
-  }
-
-  if (FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL)) {
+  if (FT_Load_Char(face, key, FT_LOAD_RENDER)) {
     return -1;
   }
 
@@ -102,10 +98,7 @@ int get_font_path(char **font_path_ptr, const char *font_name) {
   return 0;
 }
 
-int text_init(Text *text, Config *config) {
-  text->index = 0;
-  text->scale = config->font.size / 256;
-
+int text_init(Text *text, Font *font) {
   FT_Library ft = NULL;
   if (FT_Init_FreeType(&ft)) {
     printf("Failed to initialize freetype2\n");
@@ -115,7 +108,7 @@ int text_init(Text *text, Config *config) {
   FT_Face face = NULL;
 
   char *font_path = NULL;
-  if (get_font_path(&font_path, config->font.name) == -1) {
+  if (get_font_path(&font_path, font->name) == -1) {
     return -1;
   };
 
@@ -138,11 +131,10 @@ int text_init(Text *text, Config *config) {
   glGenTextures(1, &texture_array);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D_ARRAY, texture_array);
-  glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_R8, 256, 256,
-               256, // Char len
-               0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+  glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_R8, 256, 256, CHAR_INFO_LEN, 0,
+               GL_RED, GL_UNSIGNED_BYTE, NULL);
 
-  for (int i = 0; i < 256; i++) {
+  for (int i = 0; i < CHAR_INFO_LEN; i++) {
     if (character_init(&text->char_info[i], face, i) == -1) {
       char str[2];
       str[0] = (char)i;
@@ -156,6 +148,11 @@ int text_init(Text *text, Config *config) {
   FT_Done_Face(face);
   FT_Done_FreeType(ft);
 
+  text->index = 0;
+  text->scale = font->size / 256;
+  text->font = font;
+  text->texture = texture_array;
+
   return 0;
 }
 
@@ -164,12 +161,11 @@ void text_render_call(Text *text_s, GLuint shader_program) {
     return;
   }
 
-  float color[4] = {0, 0, 0, 1};
   GLint color_location = glGetUniformLocation(shader_program, "color");
   GLint transform_location = glGetUniformLocation(shader_program, "transform");
   GLint letterMap_location = glGetUniformLocation(shader_program, "letterMap");
 
-  glUniform4fv(color_location, 1, &color[0]);
+  glUniform4fv(color_location, 1, &text_s->font->color[0]);
   glUniformMatrix4fv(transform_location, text_s->index, GL_FALSE,
                      &text_s->transform[0][0][0]);
   glUniform1iv(letterMap_location, text_s->index, &text_s->letter_map[0]);
@@ -185,12 +181,16 @@ void text_place(Text *text_s, const char *text, int x, int y,
     return;
   }
 
+  int initial_x = x;
+
   int move = 0;
   for (int i = 0; i < text_len; i++) {
     char ch = text[i];
     Character character = text_s->char_info[(int)text[i]];
 
     if (ch == '\n') {
+      y += character.size[1] * text_s->scale;
+      x = initial_x;
       continue;
     }
 
@@ -213,3 +213,5 @@ void text_place(Text *text_s, const char *text, int x, int y,
     }
   }
 }
+
+void text_deinit(Text *text) { glDeleteTextures(1, &text->texture); }
