@@ -7,7 +7,7 @@
 
 typedef struct {
   uint32_t id;
-  char *name;
+  uint8_t *name;
   int32_t scale;
 } OutputInfo;
 

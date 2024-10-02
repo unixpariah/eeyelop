@@ -8,13 +8,14 @@
 #include "math.h"
 #include "shaders/main.h"
 #include "shaders/text.h"
+#include "stdfloat.h"
 #include "wayland-egl-core.h"
-#include <ArrayList.h>
 #include <Config.h>
 #include <Eeyelop.h>
 #include <Notification.h>
 #include <Output.h>
 #include <Seat.h>
+#include <hiv/ArrayList.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -31,28 +32,30 @@ void layer_surface_handle_configure(void *data,
 
   Eeyelop *eeyelop = data;
 
-  if (eeyelop->surface.configured && eeyelop->surface.width == (int)width &&
-      eeyelop->surface.height == (int)height) {
+  if (eeyelop->surface.configured &&
+      eeyelop->surface.width == (float32_t)width &&
+      eeyelop->surface.height == (float32_t)height) {
     wl_surface_commit(eeyelop->surface.wl_surface);
     return;
   }
 
-  eeyelop->surface.width = (int)width;
-  eeyelop->surface.height = (int)height;
+  eeyelop->surface.width = (float32_t)width;
+  eeyelop->surface.height = (float32_t)height;
   eeyelop->surface.configured = true;
 
   wl_egl_window_resize(eeyelop->surface.egl_window, (int)width, (int)height, 0,
                        0);
 
+  glViewport(0, 0, (GLsizei)width, (GLsizei)height);
+
   Mat4 mat4;
-  math_orthographic_projection(&mat4, 0, (float)width, 0, (float)height);
+  mat4_orthographic_projection(&mat4, 0, (float)width, 0, (float)height);
 
   {
     glUseProgram(eeyelop->egl.main_shader_program);
     GLint location =
         glGetUniformLocation(eeyelop->egl.main_shader_program, "projection");
     glUniformMatrix4fv(location, 1, GL_FALSE, (const GLfloat *)mat4);
-    glViewport(0, 0, (int)width, (int)height);
   }
 
   {
@@ -60,9 +63,9 @@ void layer_surface_handle_configure(void *data,
     GLint location =
         glGetUniformLocation(eeyelop->egl.text_shader_program, "projection");
     glUniformMatrix4fv(location, 1, GL_FALSE, (const GLfloat *)mat4);
-    glViewport(0, 0, (int)width, (int)height);
   }
 
+  glViewport(0, 0, (int)width, (int)height);
   zwlr_layer_surface_v1_ack_configure(eeyelop->surface.layer, serial);
 }
 
@@ -81,8 +84,8 @@ const struct zwlr_layer_surface_v1_listener layer_surface_listener = {
 Eeyelop eeyelop_init(void) {
   Eeyelop eeyelop = {0};
 
-  array_list_init(&eeyelop.outputs, sizeof(Output));
-  array_list_init(&eeyelop.notifications, sizeof(Notification));
+  array_list_init(&eeyelop.outputs);
+  array_list_init(&eeyelop.notifications);
   eeyelop.config = config_init();
   eeyelop.seat = seat_init();
   eeyelop.surface.configured = false;
@@ -145,11 +148,12 @@ void eeyelop_config_apply(Eeyelop *eeyelop) {
 }
 
 struct zwlr_layer_surface_v1 *create_layer_surface(Eeyelop *eeyelop) {
-  if (strcmp(eeyelop->config.output, "") != 0) {
-    for (int i = 0; i < eeyelop->outputs.len; i++) {
+  if (strcmp((char *)eeyelop->config.output, "") != 0) {
+    for (uint32_t i = 0; i < eeyelop->outputs.len; i++) {
       Output *output = (Output *)eeyelop->outputs.items[i];
 
-      if (strcmp(eeyelop->config.output, output->info.name) == 0) {
+      if (strcmp((char *)eeyelop->config.output, (char *)output->info.name) ==
+          0) {
         return zwlr_layer_shell_v1_get_layer_surface(
             eeyelop->layer_shell, eeyelop->surface.wl_surface,
             output->wl_output, 3, "eeyelop");
@@ -203,9 +207,9 @@ void gl_message_callback(unsigned int source, unsigned int err_type,
          message);
 }
 
-int compile_shader(const char *shader_source, GLuint shader,
+int compile_shader(const uint8_t *shader_source, GLuint shader,
                    GLuint shader_program) {
-  glShaderSource(shader, 1, &shader_source, NULL);
+  glShaderSource(shader, 1, (const char **)&shader_source, NULL);
   glCompileShader(shader);
 
   int success = 0;
@@ -221,8 +225,8 @@ int compile_shader(const char *shader_source, GLuint shader,
   return 0;
 }
 
-int create_shader_program(GLuint *shader_program, const char *vertex_source,
-                          const char *fragment_source) {
+int create_shader_program(GLuint *shader_program, const uint8_t *vertex_source,
+                          const uint8_t *fragment_source) {
   GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
   GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
 
@@ -412,7 +416,7 @@ void eeyelop_deinit(Eeyelop *eeyelop) {
   zwlr_layer_shell_v1_destroy(eeyelop->layer_shell);
   seat_deinit(&eeyelop->seat);
 
-  for (int i = 0; i < eeyelop->outputs.len; i++) {
+  for (uint32_t i = 0; i < eeyelop->outputs.len; i++) {
     Output *output = (Output *)eeyelop->outputs.items[i];
     output_deinit(output);
   }

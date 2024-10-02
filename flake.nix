@@ -4,6 +4,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     zls.url = "github:zigtools/zls";
+    hiv.url = "github:unixpariah/hiv";
     zig = {
       url = "github:mitchellh/zig-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -15,6 +16,7 @@
     zls,
     flake-utils,
     zig,
+    hiv,
     ...
   }:
     flake-utils.lib.eachDefaultSystem (
@@ -37,6 +39,7 @@
             freetype
             fontconfig
             clang-tools
+            hiv.packages.${system}.default
             zls.packages.${system}.default
             zig.packages.${system}."0.13.0"
           ];

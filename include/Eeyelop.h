@@ -3,10 +3,11 @@
 
 #include "EGL/egl.h"
 #include "GL/gl.h"
-#include <ArrayList.h>
+#include "stdfloat.h"
 #include <Config.h>
 #include <Seat.h>
 #include <Text.h>
+#include <hiv/ArrayList.h>
 #include <stdbool.h>
 
 typedef struct {
@@ -25,8 +26,8 @@ typedef struct {
   struct zwlr_layer_shell_v1 *layer_shell;
   struct {
     bool configured;
-    int width;
-    int height;
+    float32_t width;
+    float32_t height;
     struct wl_egl_window *egl_window;
     EGLSurface egl_surface;
     struct zwlr_layer_surface_v1 *layer;

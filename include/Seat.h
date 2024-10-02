@@ -1,13 +1,14 @@
 #ifndef SEAT_H
 #define SEAT_H
 
+#include "stdfloat.h"
 #include "wayland-client-protocol.h"
 
 typedef struct {
   struct {
     struct wl_pointer *wl_pointer;
-    int x;
-    int y;
+    float32_t x;
+    float32_t y;
   } pointer;
   struct wl_seat *seat;
 } Seat;

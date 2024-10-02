@@ -1,10 +1,8 @@
-#define GL_GLEXT_PROTOTYPES 1
-
-#include "ArrayList.h"
 #include "EGL/eglplatform.h"
 #include "Eeyelop.h"
 #include "Output.h"
 #include "Seat.h"
+#include "stdfloat.h"
 #include "wayland-client-core.h"
 #include "wayland-client-protocol.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
@@ -13,6 +11,7 @@
 #include <EGL/eglext.h>
 #include <GL/gl.h>
 #include <Notification.h>
+#include <hiv/ArrayList.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,8 +36,8 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
 
     Output *output = malloc(sizeof(Output));
     *output = output_init(wl_output, name);
-    if (array_list_append(&eeyelop->outputs, output) == -1) {
-      printf("Out of memory\n");
+    if (array_list_append(&eeyelop->outputs, output) == OOM) {
+      perror("Out of memory\nFailed to add output to the list\n");
       return;
     };
 
@@ -52,7 +51,7 @@ void handle_global_remove(void *data, struct wl_registry *registry,
   (void)registry;
 
   Eeyelop *eeyelop = data;
-  for (int i = 0; i < eeyelop->outputs.len; i++) {
+  for (uint32_t i = 0; i < eeyelop->outputs.len; i++) {
     Output *output = (Output *)eeyelop->outputs.items[i];
     if (output->info.id == name) {
       Output *output = (Output *)array_list_swap_remove(&eeyelop->outputs, i);
@@ -75,7 +74,7 @@ int render(Eeyelop *eeyelop) {
   glClear(GL_COLOR_BUFFER_BIT);
   glClearColor(0, 0, 0, 0);
 
-  for (int i = 0; i < eeyelop->notifications.len; i++) {
+  for (uint32_t i = 0; i < eeyelop->notifications.len; i++) {
     Notification *notification =
         (Notification *)eeyelop->notifications.items[i];
     eeyelop_notification_render(eeyelop, notification);
@@ -91,7 +90,7 @@ int render(Eeyelop *eeyelop) {
 int main(void) {
   struct wl_display *display = wl_display_connect(NULL);
   if (!display) {
-    printf("Failed to create display\n");
+    perror("Failed to create display\n");
     return EXIT_FAILURE;
   }
 
@@ -105,7 +104,7 @@ int main(void) {
   wl_display_roundtrip(display);
 
   if (!eeyelop.layer_shell) {
-    printf("wlr_layer_shell protocol unsupported\n");
+    perror("wlr_layer_shell protocol unsupported\n");
     return EXIT_FAILURE;
   }
 
@@ -121,9 +120,9 @@ int main(void) {
 
   for (int i = 0; i < 5; i++) {
     Notification *notification = malloc(sizeof(Notification));
-    *notification = notification_init(&eeyelop.config, "test", i);
-    if (array_list_append(&eeyelop.notifications, notification) == -1) {
-      printf("Out of memory\n");
+    *notification = notification_init(&eeyelop.config, (uint8_t *)"test", i);
+    if (array_list_append(&eeyelop.notifications, notification) == OOM) {
+      perror("Out of memory\nFailed to append notification to list\n");
     };
   }
 
@@ -133,15 +132,15 @@ int main(void) {
     return EXIT_FAILURE;
   }
 
-  int total_width = eeyelop.config.width + eeyelop.config.margin.left +
-                    eeyelop.config.margin.right;
+  float32_t total_width = eeyelop.config.width + eeyelop.config.margin.left +
+                          eeyelop.config.margin.right;
 
-  int total_height = (eeyelop.config.height + eeyelop.config.margin.top +
-                      eeyelop.config.margin.bottom) *
-                     eeyelop.notifications.len;
+  float32_t total_height = (eeyelop.config.height + eeyelop.config.margin.top +
+                            eeyelop.config.margin.bottom) *
+                           (float32_t)eeyelop.notifications.len;
 
-  zwlr_layer_surface_v1_set_size(eeyelop.surface.layer, total_width,
-                                 total_height);
+  zwlr_layer_surface_v1_set_size(eeyelop.surface.layer, (uint32_t)total_width,
+                                 (uint32_t)total_height);
 
   wl_surface_commit(eeyelop.surface.wl_surface);
 

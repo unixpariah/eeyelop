@@ -1,7 +1,8 @@
 #ifndef TEXT_SHADER_H
 #define TEXT_SHADER_H
 
-const char *text_vertex_source =
+#include <stdint.h>
+const uint8_t *text_vertex_source =
     "#version 460 core\n"
     "\n"
     "layout(location = 0) in vec2 in_pos;\n"
@@ -27,7 +28,7 @@ const char *text_vertex_source =
     "  vs_out.color = color;\n"
     "}\n";
 
-const char *text_fragment_source =
+const uint8_t *text_fragment_source =
     "#version 460 core\n"
     "layout(location = 0) out vec4 FragColor;\n"
     "\n"

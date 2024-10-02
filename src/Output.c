@@ -42,10 +42,10 @@ void output_handle_name(void *data, struct wl_output *wl_output,
   output->info.name = malloc(strlen(name) + 1);
   if (output->info.name == NULL) {
     printf("Out of memory\n");
-    output->info.name = "<unkown>";
+    output->info.name = (uint8_t *)"<unkown>";
     return;
   }
-  strncpy(output->info.name, name, strlen(name));
+  strncpy((char *)output->info.name, name, strlen(name));
 }
 
 void output_handle_scale(void *data, struct wl_output *wl_output,

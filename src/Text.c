@@ -1,3 +1,4 @@
+#include <stdint.h>
 #define GL_GLEXT_PROTOTYPES 1
 
 #include "GL/gl.h"
@@ -7,9 +8,12 @@
 #include <Text.h>
 #include <fontconfig/fontconfig.h>
 #include <freetype/freetype.h>
+#include <stdfloat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "freetype/ftimage.h"
 
 int character_init(Character *character, FT_Face face, int key) {
 
@@ -29,17 +33,19 @@ int character_init(Character *character, FT_Face face, int key) {
 
   character->key = key;
   character->texture_id = key;
-  character->size[0] = (int)face->glyph->bitmap.width;
-  character->size[1] = (int)face->glyph->bitmap.rows;
-  character->bearing[0] = (int)face->glyph->bitmap_left;
-  character->bearing[1] = (int)face->glyph->bitmap_top;
-  character->advance[0] = (int)face->glyph->advance.x >> 6;
-  character->advance[1] = (int)face->glyph->advance.y >> 6;
+  character->size[0] = (float32_t)face->glyph->bitmap.width;
+  character->size[1] = (float32_t)face->glyph->bitmap.rows;
+  character->bearing[0] = (float32_t)face->glyph->bitmap_left;
+  character->bearing[1] = (float32_t)face->glyph->bitmap_top;
+  FT_Pos advance[2] = {face->glyph->advance.x >> 6,
+                       face->glyph->advance.y >> 6};
+  character->advance[0] = (float32_t)advance[0];
+  character->advance[1] = (float32_t)advance[1];
 
   return 0;
 }
 
-int get_font_path(char **font_path_ptr, const char *font_name) {
+int get_font_path(uint8_t **font_path_ptr, const uint8_t *font_name) {
   if (!FcInit()) {
     printf("Failed to initialize fontconfig.\n");
     return -1;
@@ -70,7 +76,7 @@ int get_font_path(char **font_path_ptr, const char *font_name) {
     return -1;
   }
 
-  FcChar8 *font_path = NULL;
+  uint8_t *font_path = NULL;
   if (FcPatternGetString(match, FC_FILE, 0, &font_path) != FcResultMatch) {
     printf("Failed to retrieve font path.\n");
     return -1;
@@ -81,13 +87,13 @@ int get_font_path(char **font_path_ptr, const char *font_name) {
     return -1;
   }
 
-  *font_path_ptr = (char *)malloc(strlen((const char *)font_path) + 1);
+  *font_path_ptr = malloc(strlen((char *)font_path) + 1);
   if (*font_path_ptr == NULL) {
     printf("OOM\n");
     return -1;
   }
 
-  strcpy(*font_path_ptr, (const char *)font_path);
+  strcpy((char *)*font_path_ptr, (const char *)font_path);
 
   FcPatternDestroy(match);
   FcPatternDestroy(pattern);
@@ -107,12 +113,12 @@ int text_init(Text *text, Font *font) {
 
   FT_Face face = NULL;
 
-  char *font_path = NULL;
+  uint8_t *font_path = NULL;
   if (get_font_path(&font_path, font->name) == -1) {
     return -1;
   };
 
-  if (FT_New_Face(ft, font_path, 0, &face)) {
+  if (FT_New_Face(ft, (char *)font_path, 0, &face)) {
     printf("Failed to create new freetype face.\n");
     free(font_path);
     return -1;
@@ -174,18 +180,18 @@ void text_render_call(Text *text_s, GLuint shader_program) {
   text_s->index = 0;
 }
 
-void text_place(Text *text_s, const char *text, int x, int y,
+void text_place(Text *text_s, const uint8_t *text, float32_t x, float32_t y,
                 GLuint shader_program) {
-  int text_len = (int)strlen(text);
+  int text_len = (int)strlen((char *)text);
   if (text_len == 0) {
     return;
   }
 
-  int initial_x = x;
+  float32_t initial_x = x;
 
-  int move = 0;
+  float32_t move = 0;
   for (int i = 0; i < text_len; i++) {
-    char ch = text[i];
+    uint8_t ch = text[i];
     Character character = text_s->char_info[(int)text[i]];
 
     if (ch == '\n') {
@@ -199,11 +205,10 @@ void text_place(Text *text_s, const char *text, int x, int y,
       continue;
     }
 
-    int x_pos = x + character.bearing[0] * text_s->scale + move;
-    int y_pos = y + character.bearing[1] * text_s->scale;
+    float32_t x_pos = x + character.bearing[0] * text_s->scale + move;
+    float32_t y_pos = y + character.bearing[1] * text_s->scale;
 
-    math_transform(&text_s->transform[text_s->index], 16, (float)x_pos,
-                   (float)y_pos);
+    mat4_transform(&text_s->transform[text_s->index], 16, x_pos, y_pos);
     text_s->letter_map[text_s->index] = character.texture_id;
 
     move += character.advance[0] * text_s->scale;

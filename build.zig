@@ -57,7 +57,6 @@ pub fn build(b: *std.Build) !void {
     exe.addLibraryPath(b.path("lib"));
 
     const source_files = &[_][]const u8{
-        "lib/ArrayList.c",
         "src/Output.c",
         "src/main.c",
         "src/Eeyelop.c",
@@ -100,6 +99,12 @@ pub fn build(b: *std.Build) !void {
     );
     defer alloc.free(xdg_shell_protocol);
 
+    const hiv_dep = b.dependency("hiv", .{});
+    exe.addIncludePath(hiv_dep.path("include"));
+    exe.addLibraryPath(hiv_dep.path("lib"));
+    exe.linkLibrary(hiv_dep.artifact("hiv"));
+
+    exe.linkSystemLibrary("hiv");
     exe.linkSystemLibrary("wayland-client");
     exe.linkSystemLibrary("wayland-egl");
     exe.linkSystemLibrary("egl");
@@ -124,8 +129,12 @@ pub fn build(b: *std.Build) !void {
     const tidy_step = b.step("tidy", "Run clang-tidy");
     tidy_step.dependOn(&clang_tidy_cmd.step);
 
-    const valgrind_cmd = b.addSystemCommand(&.{ "valgrind", "--leak-check=full", "./zig-out/bin/eeyelop" });
-
+    var valgrind_cmd = b.addSystemCommand(&.{"valgrind"});
+    if (b.args) |args| {
+        for (args) |arg| valgrind_cmd.addArg(arg);
+    }
+    valgrind_cmd.addArg("./zig-out/bin/eeyelop");
     const valgrind_step = b.step("valgrind", "Run valgrind");
     valgrind_step.dependOn(&valgrind_cmd.step);
+    valgrind_step.dependOn(&run_cmd.step);
 }

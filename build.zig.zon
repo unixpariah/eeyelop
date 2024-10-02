@@ -1,0 +1,16 @@
+.{
+    .name = "eeyelop",
+    .version = "0.0.0",
+
+    .dependencies = .{
+        .hiv = .{
+            .url = "https://github.com/unixpariah/hiv/archive/main.tar.gz",
+            .hash = "1220253b755c988dfe0a7c2d4a1e3218110c6899ba8c8cf9cb04f56ccbd50e533189",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

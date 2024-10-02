@@ -1,5 +1,6 @@
-#include "ArrayList.h"
 #include "Eeyelop.h"
+#include "hiv/ArrayList.h"
+#include "stdfloat.h"
 #include "wayland-client-protocol.h"
 #include "wayland-util.h"
 #include <Notification.h>
@@ -35,8 +36,8 @@ void pointer_handle_motion(void *data, struct wl_pointer *pointer,
   (void)pointer, (void)serial;
 
   Eeyelop *eeyelop = data;
-  eeyelop->seat.pointer.x = wl_fixed_to_int(surface_x);
-  eeyelop->seat.pointer.y = wl_fixed_to_int(surface_y);
+  eeyelop->seat.pointer.x = (float32_t)wl_fixed_to_int(surface_x);
+  eeyelop->seat.pointer.y = (float32_t)wl_fixed_to_int(surface_y);
 }
 
 void pointer_handle_button(void *data, struct wl_pointer *pointer,
@@ -45,7 +46,7 @@ void pointer_handle_button(void *data, struct wl_pointer *pointer,
   (void)pointer, (void)serial, (void)time, (void)button;
 
   Eeyelop *eeyelop = data;
-  for (int i = 0; i < eeyelop->notifications.len; i++) {
+  for (uint32_t i = 0; i < eeyelop->notifications.len; i++) {
     Notification *notification =
         (Notification *)eeyelop->notifications.items[i];
 
