@@ -164,33 +164,33 @@ void text_place(Text *text_s, const uint8_t *text, float32_t x, float32_t y,
     return;
   }
 
-  float32_t initial_x = x;
-
-  float32_t move = 0;
+  float32_t move[2] = {0, (float32_t)text_s->char_info[10].size[1] * 1.3F *
+                              text_s->scale};
   for (int i = 0; i < text_len; i++) {
     uint8_t ch = text[i];
     Character character = text_s->char_info[ch];
 
     if (ch == '\n') {
-      y += (float32_t)character.size[1] * 1.3F * text_s->scale;
-      move = initial_x;
+      move[1] += (float32_t)character.size[1] * 1.3F * text_s->scale;
+      move[0] = 0;
       continue;
     }
 
     if (ch == ' ') {
-      x += (float32_t)character.advance[0] * text_s->scale;
+      move[0] += (float32_t)character.advance[0] * text_s->scale;
       continue;
     }
 
     float32_t x_pos =
-        x + (float32_t)character.bearing[0] * text_s->scale + move;
-    float32_t y_pos = y - (float32_t)character.bearing[1] * text_s->scale;
+        x + (float32_t)character.bearing[0] * text_s->scale + move[0];
+    float32_t y_pos =
+        y - (float32_t)character.bearing[1] * text_s->scale + move[1];
 
     mat4_transform(&text_s->transform[text_s->index], text_s->font->size, x_pos,
                    y_pos);
     text_s->letter_map[text_s->index] = character.texture_id;
 
-    move += (float32_t)character.advance[0] * text_s->scale;
+    move[0] += (float32_t)character.advance[0] * text_s->scale;
     text_s->index++;
     if (text_s->index == LENGTH) {
       text_render_call(text_s, shader_program);

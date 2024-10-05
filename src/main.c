@@ -133,7 +133,7 @@ int main(void) {
       continue;
     }
     *notification =
-        notification_init(&eeyelop.config, (uint8_t *)"test\ntest2?", i);
+        notification_init(&eeyelop.config, (uint8_t *)"test\ntest2? test3!", i);
     if (array_list_append(&eeyelop.notifications, notification) ==
         ARRAY_LIST_OOM) {
       perror("Out of memory\nFailed to append notification to list\n");
