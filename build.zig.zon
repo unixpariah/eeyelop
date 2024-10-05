@@ -5,7 +5,11 @@
     .dependencies = .{
         .hiv = .{
             .url = "https://github.com/unixpariah/hiv/archive/main.tar.gz",
-            .hash = "1220253b755c988dfe0a7c2d4a1e3218110c6899ba8c8cf9cb04f56ccbd50e533189",
+            .hash = "1220bb5beed94286dd5f3b8a7aa32de12ade7b8ae655b1aee3855e9f610b809cb399",
+        },
+        .ziglua = .{
+            .url = "https://github.com/natecraddock/ziglua/archive/main.tar.gz",
+            .hash = "1220e799b85ed395896173008e6567a5614a4842d1e1485ee62e669926c2082bb93c",
         },
     },
     .paths = .{

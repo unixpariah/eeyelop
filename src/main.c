@@ -2,7 +2,6 @@
 #include "Eeyelop.h"
 #include "Output.h"
 #include "Seat.h"
-#include "stdfloat.h"
 #include "wayland-client-core.h"
 #include "wayland-client-protocol.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
@@ -12,6 +11,7 @@
 #include <GL/gl.h>
 #include <Notification.h>
 #include <hiv/ArrayList.h>
+#include <hiv/EventLoop.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,8 +35,12 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
         wl_registry_bind(registry, name, &wl_output_interface, version);
 
     Output *output = malloc(sizeof(Output));
+    if (!output) {
+      perror("Out of memory\nFailed to allocate space for output\n");
+      return;
+    }
     *output = output_init(wl_output, name);
-    if (array_list_append(&eeyelop->outputs, output) == OOM) {
+    if (array_list_append(&eeyelop->outputs, output) == ARRAY_LIST_OOM) {
       perror("Out of memory\nFailed to add output to the list\n");
       return;
     };
@@ -66,11 +70,6 @@ static const struct wl_registry_listener registry_listener = {
 };
 
 int render(Eeyelop *eeyelop) {
-  if (!eglMakeCurrent(eeyelop->egl.display, eeyelop->surface.egl_surface,
-                      eeyelop->surface.egl_surface, eeyelop->egl.context)) {
-    return -1;
-  };
-
   glClear(GL_COLOR_BUFFER_BIT);
   glClearColor(0, 0, 0, 0);
 
@@ -87,6 +86,11 @@ int render(Eeyelop *eeyelop) {
   return 0;
 }
 
+void callback(void *data) {
+  struct wl_display *display = data;
+  wl_display_dispatch(display);
+}
+
 int main(void) {
   struct wl_display *display = wl_display_connect(NULL);
   if (!display) {
@@ -96,8 +100,12 @@ int main(void) {
 
   Eeyelop eeyelop = eeyelop_init();
 
-  struct wl_registry *registry = wl_display_get_registry(display);
+  EventLoop event_loop = {0};
+  event_loop_init(&event_loop);
+  int fd = wl_display_get_fd(display);
+  event_loop_insert_source(&event_loop, fd, &callback, display);
 
+  struct wl_registry *registry = wl_display_get_registry(display);
   wl_registry_add_listener(registry, &registry_listener, &eeyelop);
 
   wl_display_dispatch(display);
@@ -118,11 +126,19 @@ int main(void) {
     return EXIT_FAILURE;
   };
 
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 6; i++) {
     Notification *notification = malloc(sizeof(Notification));
-    *notification = notification_init(&eeyelop.config, (uint8_t *)"test", i);
-    if (array_list_append(&eeyelop.notifications, notification) == OOM) {
+    if (!notification) {
+      perror("Out of memory\nFailed to allocate space for notification\n");
+      continue;
+    }
+    *notification =
+        notification_init(&eeyelop.config, (uint8_t *)"test\ntest2?", i);
+    if (array_list_append(&eeyelop.notifications, notification) ==
+        ARRAY_LIST_OOM) {
       perror("Out of memory\nFailed to append notification to list\n");
+      free(notification);
+      continue;
     };
   }
 
@@ -131,16 +147,6 @@ int main(void) {
   if (text_init(&eeyelop.text, &eeyelop.config.font) == -1) {
     return EXIT_FAILURE;
   }
-
-  float32_t total_width = eeyelop.config.width + eeyelop.config.margin.left +
-                          eeyelop.config.margin.right;
-
-  float32_t total_height = (eeyelop.config.height + eeyelop.config.margin.top +
-                            eeyelop.config.margin.bottom) *
-                           (float32_t)eeyelop.notifications.len;
-
-  zwlr_layer_surface_v1_set_size(eeyelop.surface.layer, (uint32_t)total_width,
-                                 (uint32_t)total_height);
 
   wl_surface_commit(eeyelop.surface.wl_surface);
 
@@ -152,7 +158,7 @@ int main(void) {
     return EXIT_FAILURE;
   };
 
-  while (wl_display_dispatch(display) != -1) {
+  while (event_loop_poll(&event_loop) == EVENT_LOOP_OK) {
     if (render(&eeyelop) == -1) {
       EGLint error = eglGetError();
       printf("Failed to render with error: 0x%x\n", error);
@@ -160,6 +166,7 @@ int main(void) {
     };
   }
 
+  event_loop_deinit(&event_loop);
   eeyelop_deinit(&eeyelop);
   wl_registry_destroy(registry);
   wl_display_disconnect(display);

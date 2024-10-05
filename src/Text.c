@@ -1,4 +1,3 @@
-#include <stdint.h>
 #define GL_GLEXT_PROTOTYPES 1
 
 #include "GL/gl.h"
@@ -6,22 +5,21 @@
 #include "math.h"
 #include <Config.h>
 #include <Text.h>
+#include <cglm/mat4.h>
 #include <fontconfig/fontconfig.h>
 #include <freetype/freetype.h>
 #include <stdfloat.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "freetype/ftimage.h"
-
-int character_init(Character *character, FT_Face face, int key) {
-
-  if (FT_Load_Char(face, key, FT_LOAD_RENDER)) {
+int character_init(Character *character, FT_Face face, int index) {
+  if (FT_Load_Char(face, index, FT_LOAD_RENDER)) {
     return -1;
   }
 
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, key,
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, index,
                   (GLsizei)face->glyph->bitmap.width,
                   (GLsizei)face->glyph->bitmap.rows, 1, GL_RED,
                   GL_UNSIGNED_BYTE, face->glyph->bitmap.buffer);
@@ -31,21 +29,19 @@ int character_init(Character *character, FT_Face face, int key) {
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-  character->key = key;
-  character->texture_id = key;
-  character->size[0] = (float32_t)face->glyph->bitmap.width;
-  character->size[1] = (float32_t)face->glyph->bitmap.rows;
-  character->bearing[0] = (float32_t)face->glyph->bitmap_left;
-  character->bearing[1] = (float32_t)face->glyph->bitmap_top;
-  FT_Pos advance[2] = {face->glyph->advance.x >> 6,
-                       face->glyph->advance.y >> 6};
-  character->advance[0] = (float32_t)advance[0];
-  character->advance[1] = (float32_t)advance[1];
+  character->texture_id = index;
+  character->size[0] = face->glyph->bitmap.width;
+  character->size[1] = face->glyph->bitmap.rows;
+  character->bearing[0] = face->glyph->bitmap_left;
+  character->bearing[1] = face->glyph->bitmap_top;
+  character->advance[0] = face->glyph->advance.x >> 6;
+  character->advance[1] = face->glyph->advance.y >> 6;
 
   return 0;
 }
 
-int get_font_path(uint8_t **font_path_ptr, const uint8_t *font_name) {
+static inline int get_font_path(uint8_t **font_path_ptr,
+                                const uint8_t *font_name) {
   if (!FcInit()) {
     printf("Failed to initialize fontconfig.\n");
     return -1;
@@ -76,29 +72,14 @@ int get_font_path(uint8_t **font_path_ptr, const uint8_t *font_name) {
     return -1;
   }
 
-  uint8_t *font_path = NULL;
-  if (FcPatternGetString(match, FC_FILE, 0, &font_path) != FcResultMatch) {
+  if (FcPatternGetString(match, FC_FILE, 0, font_path_ptr) != FcResultMatch) {
     printf("Failed to retrieve font path.\n");
     return -1;
   }
 
-  if (font_path == NULL) {
-    printf("Font path is NULL.\n");
-    return -1;
-  }
-
-  *font_path_ptr = malloc(strlen((char *)font_path) + 1);
-  if (*font_path_ptr == NULL) {
-    printf("OOM\n");
-    return -1;
-  }
-
-  strcpy((char *)*font_path_ptr, (const char *)font_path);
-
-  FcPatternDestroy(match);
+  // FcPatternDestroy(match);
   FcPatternDestroy(pattern);
   FcConfigDestroy(config);
-
   FcFini();
 
   return 0;
@@ -111,20 +92,18 @@ int text_init(Text *text, Font *font) {
     return -1;
   }
 
-  FT_Face face = NULL;
-
   uint8_t *font_path = NULL;
   if (get_font_path(&font_path, font->name) == -1) {
     return -1;
   };
 
-  if (FT_New_Face(ft, (char *)font_path, 0, &face)) {
+  FT_Face face = NULL;
+
+  if (FT_New_Face(ft, (const char *)font_path, 0, &face)) {
     printf("Failed to create new freetype face.\n");
     free(font_path);
     return -1;
   }
-
-  free(font_path);
 
   if (FT_Set_Pixel_Sizes(face, 256, 256)) {
     printf("Failed to set face pixel size\n");
@@ -149,8 +128,6 @@ int text_init(Text *text, Font *font) {
     }
   }
 
-  glBindTexture(GL_TEXTURE_2D_ARRAY, texture_array);
-
   FT_Done_Face(face);
   FT_Done_FreeType(ft);
 
@@ -167,11 +144,11 @@ void text_render_call(Text *text_s, GLuint shader_program) {
     return;
   }
 
-  GLint color_location = glGetUniformLocation(shader_program, "color");
+  GLint color_location = glGetUniformLocation(shader_program, "textColor");
   GLint transform_location = glGetUniformLocation(shader_program, "transform");
   GLint letterMap_location = glGetUniformLocation(shader_program, "letterMap");
 
-  glUniform4fv(color_location, 1, &text_s->font->color[0]);
+  glUniform3fv(color_location, 1, text_s->font->color);
   glUniformMatrix4fv(transform_location, text_s->index, GL_FALSE,
                      &text_s->transform[0][0][0]);
   glUniform1iv(letterMap_location, text_s->index, &text_s->letter_map[0]);
@@ -192,26 +169,28 @@ void text_place(Text *text_s, const uint8_t *text, float32_t x, float32_t y,
   float32_t move = 0;
   for (int i = 0; i < text_len; i++) {
     uint8_t ch = text[i];
-    Character character = text_s->char_info[(int)text[i]];
+    Character character = text_s->char_info[ch];
 
     if (ch == '\n') {
-      y += character.size[1] * text_s->scale;
-      x = initial_x;
+      y += (float32_t)character.size[1] * 1.3F * text_s->scale;
+      move = initial_x;
       continue;
     }
 
     if (ch == ' ') {
-      x += character.advance[0] * text_s->scale;
+      x += (float32_t)character.advance[0] * text_s->scale;
       continue;
     }
 
-    float32_t x_pos = x + character.bearing[0] * text_s->scale + move;
-    float32_t y_pos = y + character.bearing[1] * text_s->scale;
+    float32_t x_pos =
+        x + (float32_t)character.bearing[0] * text_s->scale + move;
+    float32_t y_pos = y - (float32_t)character.bearing[1] * text_s->scale;
 
-    mat4_transform(&text_s->transform[text_s->index], 16, x_pos, y_pos);
+    mat4_transform(&text_s->transform[text_s->index], text_s->font->size, x_pos,
+                   y_pos);
     text_s->letter_map[text_s->index] = character.texture_id;
 
-    move += character.advance[0] * text_s->scale;
+    move += (float32_t)character.advance[0] * text_s->scale;
     text_s->index++;
     if (text_s->index == LENGTH) {
       text_render_call(text_s, shader_program);

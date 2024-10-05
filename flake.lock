@@ -257,11 +257,11 @@
         "zls": "zls"
       },
       "locked": {
-        "lastModified": 1727866908,
-        "narHash": "sha256-s8Heg7Z0huB2CLStQl4v5caNSPLUwux9b/RjogW9z1Q=",
+        "lastModified": 1727877359,
+        "narHash": "sha256-MsYIETAJP1Ff90D2JmBVrp1O3nqNpLFaFZBUhGE7+y0=",
         "owner": "unixpariah",
         "repo": "hiv",
-        "rev": "2af9a41c5b37c30fd8882cde7b6fddef90732814",
+        "rev": "62494196fefe357235e75ee2c35479914f73ffe0",
         "type": "github"
       },
       "original": {

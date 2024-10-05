@@ -1,4 +1,6 @@
 #include "Config.h"
+#include "stdfloat.h"
+#include <stdint.h>
 
 Config config_init(void) {
   Config config = {
@@ -11,21 +13,21 @@ Config config_init(void) {
               .left = 10,
               .top = 10,
           },
-      .output = "",
+      .output = (uint8_t *)"",
       .anchor = top_right,
       .layer = overlay,
       .background =
           {
-              .color = {0, 1, 0, 1},
+              .color = {(float32_t)0.09, (float32_t)0.055, (float32_t)0.122, 1},
           },
       .border =
           {
-              .size = 5,
-              .color = {1, (float)0.6, (float)0.2, 1},
+              .size = 2,
+              .color = {(float32_t)0.788, (float32_t)0.796, 1},
           },
       .font =
           {
-              .name = "Arial",
+              .name = (uint8_t *)"JetBrainsMono Nerd Font",
               .size = 16,
               .color = {1, 1, 1, 1},
           },

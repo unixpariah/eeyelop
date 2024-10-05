@@ -9,6 +9,7 @@
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include <GL/gl.h>
 #include <Notification.h>
+#include <cglm/mat4.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -80,6 +81,7 @@ void notification_render_border(Notification *notification, Border *border,
 void notification_render_text(Notification *notification, Text *text,
                               GLuint shader_program, GLuint VBO) {
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
   text_place(text, notification->text, notification->x, notification->y,
              shader_program);
   text_render_call(text, shader_program);

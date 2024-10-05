@@ -1,4 +1,3 @@
-#include <stdint.h>
 #define CHAR_INFO_LEN 128
 #define LENGTH 400
 
@@ -6,13 +5,13 @@
 #include "GL/gl.h"
 #include "math.h"
 #include "stdfloat.h"
+#include <stdint.h>
 
 typedef struct {
-  int texture_id;
-  int key;
-  float32_t size[2];
-  float32_t bearing[2];
-  float32_t advance[2];
+  uint16_t texture_id;
+  uint8_t size[2];
+  uint8_t bearing[2];
+  uint8_t advance[2];
 } Character;
 
 typedef struct {

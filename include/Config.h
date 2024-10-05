@@ -36,7 +36,7 @@ typedef struct {
 } Margin;
 
 typedef struct {
-  float32_t color[4];
+  float32_t color[3];
   float32_t size;
 } Border;
 

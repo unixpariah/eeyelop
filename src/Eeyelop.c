@@ -46,8 +46,6 @@ void layer_surface_handle_configure(void *data,
   wl_egl_window_resize(eeyelop->surface.egl_window, (int)width, (int)height, 0,
                        0);
 
-  glViewport(0, 0, (GLsizei)width, (GLsizei)height);
-
   Mat4 mat4;
   mat4_orthographic_projection(&mat4, 0, (float)width, 0, (float)height);
 
@@ -55,14 +53,14 @@ void layer_surface_handle_configure(void *data,
     glUseProgram(eeyelop->egl.main_shader_program);
     GLint location =
         glGetUniformLocation(eeyelop->egl.main_shader_program, "projection");
-    glUniformMatrix4fv(location, 1, GL_FALSE, (const GLfloat *)mat4);
+    glUniformMatrix4fv(location, 1, GL_FALSE, &mat4[0][0]);
   }
 
   {
     glUseProgram(eeyelop->egl.text_shader_program);
     GLint location =
         glGetUniformLocation(eeyelop->egl.text_shader_program, "projection");
-    glUniformMatrix4fv(location, 1, GL_FALSE, (const GLfloat *)mat4);
+    glUniformMatrix4fv(location, 1, GL_FALSE, &mat4[0][0]);
   }
 
   glViewport(0, 0, (int)width, (int)height);
@@ -145,6 +143,17 @@ void eeyelop_config_apply(Eeyelop *eeyelop) {
 
   zwlr_layer_surface_v1_set_layer(eeyelop->surface.layer, layer);
   zwlr_layer_surface_v1_set_anchor(eeyelop->surface.layer, anchor);
+
+  float32_t total_width = eeyelop->config.width + eeyelop->config.margin.left +
+                          eeyelop->config.margin.right;
+
+  float32_t total_height =
+      (eeyelop->config.height + eeyelop->config.margin.top +
+       eeyelop->config.margin.bottom) *
+      (float32_t)eeyelop->notifications.len;
+
+  zwlr_layer_surface_v1_set_size(eeyelop->surface.layer, (uint32_t)total_width,
+                                 (uint32_t)total_height);
 }
 
 struct zwlr_layer_surface_v1 *create_layer_surface(Eeyelop *eeyelop) {
@@ -319,7 +328,7 @@ int eeyelop_egl_init(Eeyelop *eeyelop, struct wl_display *display) {
   EGLSurface egl_surface =
       eglCreatePlatformWindowSurface(egl_display, egl_config, egl_window, NULL);
 
-  if (egl_window == NULL || egl_surface == EGL_NO_SURFACE) {
+  if (!egl_window || !egl_surface) {
     printf("Failed to create egl window or surface\n");
     return -1;
   }
@@ -362,7 +371,7 @@ int eeyelop_egl_init(Eeyelop *eeyelop, struct wl_display *display) {
   glGenBuffers(1, &EBO);
 
   // clang-format off
-  float vertices [8] = {
+  float vertices [8] = { // Text VBO
       0, 0,
       1, 0,
       0, 1,

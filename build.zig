@@ -104,7 +104,6 @@ pub fn build(b: *std.Build) !void {
     exe.addLibraryPath(hiv_dep.path("lib"));
     exe.linkLibrary(hiv_dep.artifact("hiv"));
 
-    exe.linkSystemLibrary("hiv");
     exe.linkSystemLibrary("wayland-client");
     exe.linkSystemLibrary("wayland-egl");
     exe.linkSystemLibrary("egl");
