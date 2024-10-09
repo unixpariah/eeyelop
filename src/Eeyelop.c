@@ -146,48 +146,57 @@ void eeyelop_config_apply(Eeyelop *eeyelop) {
 }
 
 struct zwlr_layer_surface_v1 *create_layer_surface(Eeyelop *eeyelop) {
+  struct zwlr_layer_surface_v1 *layer_surface = NULL;
+
   if (strcmp((char *)eeyelop->config.output, "") != 0) {
     for (uint32_t i = 0; i < eeyelop->outputs.len; i++) {
       Output *output = (Output *)eeyelop->outputs.items[i];
 
       if (strcmp((char *)eeyelop->config.output, (char *)output->info.name) ==
           0) {
-        return zwlr_layer_shell_v1_get_layer_surface(
+        layer_surface = zwlr_layer_shell_v1_get_layer_surface(
             eeyelop->layer_shell, eeyelop->surface.wl_surface,
             output->wl_output, 3, "eeyelop");
+        break;
       }
     }
 
     printf("Output %s doesn't exist, spawning layer on focused output\n",
            eeyelop->config.output);
+  } else {
+    layer_surface = zwlr_layer_shell_v1_get_layer_surface(
+        eeyelop->layer_shell, eeyelop->surface.wl_surface, NULL, 3, "eeyelop");
   }
-
-  return zwlr_layer_shell_v1_get_layer_surface(
-      eeyelop->layer_shell, eeyelop->surface.wl_surface, NULL, 3, "eeyelop");
-}
-
-int eeyelop_surface_init(Eeyelop *eeyelop) {
-  struct wl_surface *wl_surface =
-      wl_compositor_create_surface(eeyelop->compositor);
-
-  eeyelop->surface.wl_surface = wl_surface;
-  struct zwlr_layer_surface_v1 *layer_surface = create_layer_surface(eeyelop);
 
   zwlr_layer_surface_v1_add_listener(layer_surface, &layer_surface_listener,
                                      eeyelop);
 
-  zwlr_layer_surface_v1_set_anchor(layer_surface,
-                                   ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP |
-                                       ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM |
-                                       ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT |
-                                       ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
   zwlr_layer_surface_v1_set_exclusive_zone(layer_surface, -1);
   zwlr_layer_surface_v1_set_keyboard_interactivity(
       layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
 
-  wl_surface_commit(wl_surface);
+  return layer_surface;
+}
 
-  eeyelop->surface.layer = layer_surface;
+int eeyelop_surface_init(Eeyelop *eeyelop) {
+  eeyelop->surface.layer = create_layer_surface(eeyelop);
+  eeyelop_config_apply(eeyelop);
+
+  EGLSurface egl_surface =
+      eglCreatePlatformWindowSurface(eeyelop->egl.display, eeyelop->egl.config,
+                                     eeyelop->surface.egl_window, NULL);
+
+  if (!egl_surface) {
+    printf("Failed to create egl window or surface\n");
+    return -1;
+  }
+
+  eeyelop->surface.egl_surface = egl_surface;
+
+  if (!eglMakeCurrent(eeyelop->egl.display, eeyelop->surface.egl_surface,
+                      eeyelop->surface.egl_surface, eeyelop->egl.context)) {
+    return -1;
+  }
 
   return 0;
 }
@@ -311,18 +320,8 @@ int eeyelop_egl_init(Eeyelop *eeyelop, struct wl_display *display) {
     return -1;
   }
 
-  struct wl_egl_window *egl_window =
-      wl_egl_window_create(eeyelop->surface.wl_surface, 1, 1);
-
-  EGLSurface egl_surface =
-      eglCreatePlatformWindowSurface(egl_display, egl_config, egl_window, NULL);
-
-  if (!egl_window || !egl_surface) {
-    printf("Failed to create egl window or surface\n");
-    return -1;
-  }
-
-  if (!eglMakeCurrent(egl_display, egl_surface, egl_surface, egl_context)) {
+  if (!eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE,
+                      egl_context)) {
     return -1;
   }
 
@@ -391,8 +390,6 @@ int eeyelop_egl_init(Eeyelop *eeyelop, struct wl_display *display) {
   eeyelop->egl.VBO[0] = VBO[0];
   eeyelop->egl.VBO[1] = VBO[1];
   eeyelop->egl.EBO = EBO;
-  eeyelop->surface.egl_window = egl_window;
-  eeyelop->surface.egl_surface = egl_surface;
 
   return 0;
 }

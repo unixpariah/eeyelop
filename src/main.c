@@ -3,9 +3,9 @@
 #include "EventLoop.h"
 #include "Output.h"
 #include "Seat.h"
-#include "stdfloat.h"
 #include "wayland-client-core.h"
 #include "wayland-client-protocol.h"
+#include "wayland-egl-core.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -22,6 +22,14 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t name,
   if (strcmp(interface, wl_compositor_interface.name) == 0) {
     eeyelop->compositor =
         wl_registry_bind(registry, name, &wl_compositor_interface, version);
+
+    struct wl_surface *wl_surface =
+        wl_compositor_create_surface(eeyelop->compositor);
+
+    eeyelop->surface.wl_surface = wl_surface;
+
+    eeyelop->surface.egl_window =
+        wl_egl_window_create(eeyelop->surface.wl_surface, 1, 1);
   } else if (strcmp(interface, zwlr_layer_shell_v1_interface.name) == 0) {
     eeyelop->layer_shell = wl_registry_bind(
         registry, name, &zwlr_layer_shell_v1_interface, version);
@@ -82,11 +90,6 @@ int main(void) {
 
   Eeyelop eeyelop = eeyelop_init();
 
-  EventLoop event_loop = {0};
-  event_loop_init(&event_loop);
-  int fd = wl_display_get_fd(display);
-  event_loop_insert_source(&event_loop, fd, wl_display_callback, display, -1);
-
   struct wl_registry *registry = wl_display_get_registry(display);
   wl_registry_add_listener(registry, &registry_listener, &eeyelop);
 
@@ -98,7 +101,8 @@ int main(void) {
     return EXIT_FAILURE;
   }
 
-  if (eeyelop_surface_init(&eeyelop) == -1) {
+  if (!eeyelop.surface.egl_window) {
+    perror("Failed to create egl window");
     return EXIT_FAILURE;
   }
 
@@ -108,56 +112,27 @@ int main(void) {
     return EXIT_FAILURE;
   };
 
-  for (int i = 0; i < 6; i++) {
-    Notification *notification = malloc(sizeof(Notification));
-    if (!notification) {
-      perror("Out of memory\nFailed to allocate space for notification\n");
-      continue;
-    }
-
-    *notification =
-        notification_init(&eeyelop.config, (uint8_t *)"test\ntest2? test3!", i);
-
-    NotificationCallbackData *noti_cb_data =
-        malloc(sizeof(NotificationCallbackData));
-    noti_cb_data->notification = notification;
-    noti_cb_data->eeyelop = &eeyelop;
-
-    event_loop_insert_source(&event_loop, notification->tfd,
-                             notification_callback, noti_cb_data, 1);
-
-    if (array_list_append(&eeyelop.notifications, notification) ==
-        ARRAY_LIST_OOM) {
-      perror("Out of memory\nFailed to append notification to list\n");
-      free(notification);
-      continue;
-    };
-
-    float32_t total_width = eeyelop.config.width + eeyelop.config.margin.left +
-                            eeyelop.config.margin.right;
-
-    float32_t total_height =
-        (eeyelop.config.height + eeyelop.config.margin.top +
-         eeyelop.config.margin.bottom) *
-        (float32_t)eeyelop.notifications.len;
-
-    zwlr_layer_surface_v1_set_size(eeyelop.surface.layer, (uint32_t)total_width,
-                                   (uint32_t)total_height);
-  }
-
-  eeyelop_config_apply(&eeyelop);
-
   if (text_init(&eeyelop.text, &eeyelop.config.font) == -1) {
     return EXIT_FAILURE;
+  }
+
+  EventLoop event_loop = {0};
+  event_loop_init(&event_loop);
+  int fd = wl_display_get_fd(display);
+  event_loop_insert_source(&event_loop, fd, wl_display_callback, display, -1);
+
+  for (int i = 0; i < 6; i++) {
+    if (eeyelop_notification_init(&eeyelop, &event_loop,
+                                  (uint8_t *)"test\ntest2? test3!") == -1) {
+      continue;
+    }
   }
 
   wl_surface_commit(eeyelop.surface.wl_surface);
   wl_display_roundtrip(display);
 
-  if (eeyelop_render(&eeyelop) == -1) {
-    EGLint error = eglGetError();
-    printf("Failed to render with error: 0x%x\n", error);
-    return EXIT_FAILURE;
+  if (!eglSwapBuffers(eeyelop.egl.display, eeyelop.surface.egl_surface)) {
+    return -1;
   };
 
   if (eeyelop_render(&eeyelop) == -1) {

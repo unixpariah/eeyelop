@@ -53,7 +53,7 @@ void pointer_handle_button(void *data, struct wl_pointer *pointer,
     if (button_state == 0 &&
         notification_contains_coords(notification, eeyelop->seat.pointer.x,
                                      eeyelop->seat.pointer.y)) {
-      eeyelop_notification_remove(eeyelop, i);
+      eeyelop_notification_deinit(eeyelop, i);
       eeyelop_render(eeyelop);
     }
   }

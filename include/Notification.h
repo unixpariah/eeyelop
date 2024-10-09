@@ -1,5 +1,5 @@
-#include "Config.h"
 #include "Eeyelop.h"
+#include "EventLoop.h"
 #include "stdfloat.h"
 #include <stdbool.h>
 #include <stdint.h>
@@ -18,7 +18,8 @@ typedef struct {
   Eeyelop *eeyelop;
 } NotificationCallbackData;
 
-Notification notification_init(Config *config, uint8_t *text, uint32_t index);
+int eeyelop_notification_init(Eeyelop *eeyelop, EventLoop *event_loop,
+                              uint8_t *text);
 
 void eeyelop_notification_render(Eeyelop *eeyelop, Notification *notification);
 
@@ -27,4 +28,4 @@ bool notification_contains_coords(Notification *notification, float32_t x,
 
 void notification_callback(void *data);
 
-void eeyelop_notification_remove(Eeyelop *eeyelop, uint32_t index);
+void eeyelop_notification_deinit(Eeyelop *eeyelop, uint32_t index);

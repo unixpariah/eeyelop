@@ -5,6 +5,7 @@
 #include "EGL/egl.h"
 #include "EGL/eglplatform.h"
 #include "Eeyelop.h"
+#include "EventLoop.h"
 #include "GL/glext.h"
 #include "bits/time.h"
 #include "bits/types.h"
@@ -25,21 +26,38 @@
 #include <time.h>
 #include <unistd.h>
 
-Notification notification_init(Config *config, uint8_t *text, uint32_t index) {
-  float32_t y = config->height * (float32_t)index +
-                config->margin.top * ((float32_t)index + 1);
+int eeyelop_notification_init(Eeyelop *eeyelop, EventLoop *event_loop,
+                              uint8_t *text) {
+  Notification *notification = malloc(sizeof(Notification));
+  if (!notification) {
+    perror("Out of memory\nFailed to allocate space for notification\n");
+    return -1;
+  }
+
+  float32_t index = (float32_t)eeyelop->notifications.len;
+
+  if (index == 0) {
+    if (eeyelop_surface_init(eeyelop) == -1) {
+      free(notification);
+      return -1;
+    }
+  }
+
+  float32_t y =
+      eeyelop->config.height * index + eeyelop->config.margin.top * (index + 1);
 
   if (index > 0) {
-    y += config->margin.bottom * (float32_t)index;
+    y += eeyelop->config.margin.bottom * index;
   }
 
   int fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
   struct itimerspec value = {
       .it_value =
           {
-              .tv_sec = config->default_timeout / 1000,
+              .tv_sec = eeyelop->config.default_timeout / 1000,
               .tv_nsec =
-                  (__syscall_slong_t)(config->default_timeout % 1000) * 1000000,
+                  (__syscall_slong_t)(eeyelop->config.default_timeout % 1000) *
+                  1000000,
           },
       .it_interval =
           {
@@ -49,16 +67,44 @@ Notification notification_init(Config *config, uint8_t *text, uint32_t index) {
   };
   timerfd_settime(fd, 0, &value, 0);
 
-  Notification notification = {
-      .x = config->margin.left,
-      .y = y,
-      .width = config->width,
-      .height = config->height,
-      .text = text,
-      .tfd = fd,
+  notification->x = eeyelop->config.margin.left, notification->y = y;
+  notification->width = eeyelop->config.width;
+  notification->height = eeyelop->config.height, notification->text = text;
+  notification->tfd = fd;
+
+  NotificationCallbackData *noti_cb_data =
+      malloc(sizeof(NotificationCallbackData));
+  if (!noti_cb_data) {
+    perror("Failed to allocate space for callback data\n");
+    free(notification);
+    return -1;
+  }
+
+  noti_cb_data->notification = notification;
+  noti_cb_data->eeyelop = eeyelop;
+
+  event_loop_insert_source(event_loop, notification->tfd, notification_callback,
+                           noti_cb_data, 1);
+
+  if (array_list_append(&eeyelop->notifications, notification) ==
+      ARRAY_LIST_OOM) {
+    perror("Out of memory\nFailed to append notification to list\n");
+    free(noti_cb_data);
+    free(notification);
   };
 
-  return notification;
+  float32_t total_width = eeyelop->config.width + eeyelop->config.margin.left +
+                          eeyelop->config.margin.right;
+
+  float32_t total_height =
+      (eeyelop->config.height + eeyelop->config.margin.top +
+       eeyelop->config.margin.bottom) *
+      (float32_t)eeyelop->notifications.len;
+
+  zwlr_layer_surface_v1_set_size(eeyelop->surface.layer, (uint32_t)total_width,
+                                 (uint32_t)total_height);
+
+  return 0;
 }
 
 void notification_render_background(Notification *notification,
@@ -122,7 +168,7 @@ void notification_callback(void *data) {
   for (uint32_t i = 0; i < noti_cb_data->eeyelop->notifications.len; i++) {
     if (noti_cb_data->notification ==
         noti_cb_data->eeyelop->notifications.items[i]) {
-      eeyelop_notification_remove(noti_cb_data->eeyelop, i);
+      eeyelop_notification_deinit(noti_cb_data->eeyelop, i);
       break;
     }
   }
@@ -150,7 +196,7 @@ void eeyelop_notification_render(Eeyelop *eeyelop, Notification *notification) {
                            eeyelop->egl.VBO[1]);
 }
 
-void eeyelop_notification_remove(Eeyelop *eeyelop, uint32_t index) {
+void eeyelop_notification_deinit(Eeyelop *eeyelop, uint32_t index) {
   array_list_ordered_remove(&eeyelop->notifications, index);
 
   if (eeyelop->notifications.len == 0) {
