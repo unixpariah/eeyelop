@@ -3,12 +3,12 @@
 #include "EventLoop.h"
 #include "Output.h"
 #include "Seat.h"
+#include "stdfloat.h"
 #include "wayland-client-core.h"
 #include "wayland-client-protocol.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
-#include <GL/gl.h>
 #include <Notification.h>
 #include <hiv/ArrayList.h>
 #include <stdint.h>
@@ -132,6 +132,17 @@ int main(void) {
       free(notification);
       continue;
     };
+
+    float32_t total_width = eeyelop.config.width + eeyelop.config.margin.left +
+                            eeyelop.config.margin.right;
+
+    float32_t total_height =
+        (eeyelop.config.height + eeyelop.config.margin.top +
+         eeyelop.config.margin.bottom) *
+        (float32_t)eeyelop.notifications.len;
+
+    zwlr_layer_surface_v1_set_size(eeyelop.surface.layer, (uint32_t)total_width,
+                                   (uint32_t)total_height);
   }
 
   eeyelop_config_apply(&eeyelop);

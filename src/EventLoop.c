@@ -1,4 +1,3 @@
-#include "unistd.h"
 #include <EventLoop.h>
 #include <assert.h>
 #include <poll.h>
@@ -84,6 +83,7 @@ enum EventLoopResult event_loop_insert_source(EventLoop *event_loop, int32_t fd,
       .data = data,
       .repeats = repeats,
       .callback = callback,
+      .fd = fd,
   };
 
   event_loop->polldata[event_loop->len - 1] = polldata;
@@ -93,6 +93,14 @@ enum EventLoopResult event_loop_insert_source(EventLoop *event_loop, int32_t fd,
 }
 
 enum EventLoopResult event_loop_poll(EventLoop *event_loop) {
+  for (int32_t i = (int32_t)event_loop->len - 1; i >= 0; i--) {
+    PollData polldata = event_loop->polldata[i];
+    if (polldata.repeats == 0) {
+      event_loop_remove_source(event_loop, i);
+      printf("still removes\n");
+    }
+  }
+
   int32_t events = poll(event_loop->pollfds, event_loop->len, -1);
 
   if (events == -1) {
@@ -114,6 +122,48 @@ enum EventLoopResult event_loop_poll(EventLoop *event_loop) {
   }
 
   return EVENT_LOOP_OK;
+}
+
+PollData event_loop_remove_source(EventLoop *event_loop, uint32_t index) {
+  assert(index < 0 || index < event_loop->len);
+
+  if (event_loop->len - 1 == index) {
+    return event_loop_pop(event_loop);
+  }
+
+  PollData old_polldata = event_loop->polldata[index];
+  event_loop->polldata[index] = event_loop_pop(event_loop);
+  struct pollfd pollfd = {
+      .fd = event_loop->polldata[index].fd,
+      .events = POLLIN,
+      .revents = 0,
+  };
+  event_loop->pollfds[index] = pollfd;
+
+  return old_polldata;
+}
+
+PollData event_loop_pop(EventLoop *event_loop) {
+  assert(event_loop->len > 0);
+
+  PollData polldata = event_loop->polldata[event_loop->len - 1];
+
+  event_loop->len--;
+
+  struct pollfd *old_pollfd = &event_loop->pollfds[event_loop->len];
+
+  old_pollfd->events = 0;
+  old_pollfd->revents = 0;
+  old_pollfd->fd = 0;
+
+  PollData *old_polldata = &event_loop->polldata[event_loop->len];
+
+  old_polldata->fd = 0;
+  old_polldata->repeats = 0;
+  old_polldata->data = 0;
+  old_polldata->callback = 0;
+
+  return polldata;
 }
 
 void event_loop_deinit(EventLoop *event_loop) {

@@ -143,17 +143,6 @@ void eeyelop_config_apply(Eeyelop *eeyelop) {
 
   zwlr_layer_surface_v1_set_layer(eeyelop->surface.layer, layer);
   zwlr_layer_surface_v1_set_anchor(eeyelop->surface.layer, anchor);
-
-  float32_t total_width = eeyelop->config.width + eeyelop->config.margin.left +
-                          eeyelop->config.margin.right;
-
-  float32_t total_height =
-      (eeyelop->config.height + eeyelop->config.margin.top +
-       eeyelop->config.margin.bottom) *
-      (float32_t)eeyelop->notifications.len;
-
-  zwlr_layer_surface_v1_set_size(eeyelop->surface.layer, (uint32_t)total_width,
-                                 (uint32_t)total_height);
 }
 
 struct zwlr_layer_surface_v1 *create_layer_surface(Eeyelop *eeyelop) {

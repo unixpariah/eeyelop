@@ -2,6 +2,8 @@
 #define _POSIX_C_SOURCE 199309L
 
 #include "Config.h"
+#include "EGL/egl.h"
+#include "EGL/eglplatform.h"
 #include "Eeyelop.h"
 #include "GL/glext.h"
 #include "bits/time.h"
@@ -11,7 +13,6 @@
 #include "stdfloat.h"
 #include "wayland-client-protocol.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
-#include <EventLoop.h>
 #include <GL/gl.h>
 #include <Notification.h>
 #include <assert.h>
@@ -20,7 +21,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/poll.h>
 #include <sys/timerfd.h>
 #include <time.h>
 #include <unistd.h>
@@ -37,8 +37,7 @@ Notification notification_init(Config *config, uint8_t *text, uint32_t index) {
   struct itimerspec value = {
       .it_value =
           {
-              .tv_sec =
-                  (__time_t)(config->default_timeout / 1000) * (index + 1),
+              .tv_sec = config->default_timeout / 1000,
               .tv_nsec =
                   (__syscall_slong_t)(config->default_timeout % 1000) * 1000000,
           },
@@ -156,6 +155,7 @@ void eeyelop_notification_remove(Eeyelop *eeyelop, uint32_t index) {
 
   if (eeyelop->notifications.len == 0) {
     zwlr_layer_surface_v1_destroy(eeyelop->surface.layer);
+    wl_surface_destroy(eeyelop->surface.wl_surface);
     return;
   }
 

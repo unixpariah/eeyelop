@@ -14,6 +14,7 @@ typedef struct {
   void (*callback)(void *data);
   void *data;
   int32_t repeats;
+  int32_t fd;
 } PollData;
 
 typedef struct {
@@ -30,6 +31,10 @@ enum EventLoopResult event_loop_insert_source(EventLoop *event_loop, int32_t fd,
                                               void *data, int32_t repeats);
 
 enum EventLoopResult event_loop_poll(EventLoop *event_loop);
+
+PollData event_loop_remove_source(EventLoop *event_loop, uint32_t index);
+
+PollData event_loop_pop(EventLoop *event_loop);
 
 void event_loop_deinit(EventLoop *event_loop);
 
