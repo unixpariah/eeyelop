@@ -5,7 +5,6 @@
 #include "math.h"
 #include <Config.h>
 #include <Text.h>
-#include <cglm/mat4.h>
 #include <fontconfig/fontconfig.h>
 #include <freetype/freetype.h>
 #include <stdfloat.h>

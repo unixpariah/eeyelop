@@ -49,6 +49,8 @@ void eeyelop_config_apply(Eeyelop *);
 
 int eeyelop_egl_init(Eeyelop *eeyelop, struct wl_display *);
 
+int eeyelop_render(Eeyelop *eeyelop);
+
 int egl_deinit(Egl *);
 
 void eeyelop_deinit(Eeyelop *eeyelop);

@@ -408,6 +408,23 @@ int eeyelop_egl_init(Eeyelop *eeyelop, struct wl_display *display) {
   return 0;
 }
 
+int eeyelop_render(Eeyelop *eeyelop) {
+  glClear(GL_COLOR_BUFFER_BIT);
+  glClearColor(0, 0, 0, 0);
+
+  for (uint32_t i = 0; i < eeyelop->notifications.len; i++) {
+    Notification *notification =
+        (Notification *)eeyelop->notifications.items[i];
+    eeyelop_notification_render(eeyelop, notification);
+  }
+
+  if (!eglSwapBuffers(eeyelop->egl.display, eeyelop->surface.egl_surface)) {
+    return -1;
+  };
+
+  return 0;
+}
+
 int egl_deinit(Egl *egl) {
   eglDestroyContext(egl->display, egl->context);
   eglTerminate(egl->display);

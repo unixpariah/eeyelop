@@ -31,6 +31,7 @@ Config config_init(void) {
               .size = 16,
               .color = {1, 1, 1, 1},
           },
+      .default_timeout = 1000,
   };
 
   return config;

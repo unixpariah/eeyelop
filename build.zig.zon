@@ -5,7 +5,7 @@
     .dependencies = .{
         .hiv = .{
             .url = "https://github.com/unixpariah/hiv/archive/main.tar.gz",
-            .hash = "1220bb5beed94286dd5f3b8a7aa32de12ade7b8ae655b1aee3855e9f610b809cb399",
+            .hash = "12209709fb8f1df9d28cd14af4138204fec33f3dadda6ab25197d2c8771234fedabe",
         },
         .ziglua = .{
             .url = "https://github.com/natecraddock/ziglua/archive/main.tar.gz",

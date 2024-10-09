@@ -1,20 +1,29 @@
 #define GL_GLEXT_PROTOTYPES 1
+#define _POSIX_C_SOURCE 199309L
 
 #include "Config.h"
 #include "Eeyelop.h"
 #include "GL/glext.h"
+#include "bits/time.h"
+#include "bits/types.h"
+#include "bits/types/struct_itimerspec.h"
 #include "hiv/ArrayList.h"
 #include "stdfloat.h"
 #include "wayland-client-protocol.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
+#include <EventLoop.h>
 #include <GL/gl.h>
 #include <Notification.h>
-#include <cglm/mat4.h>
+#include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/poll.h>
+#include <sys/timerfd.h>
+#include <time.h>
+#include <unistd.h>
 
 Notification notification_init(Config *config, uint8_t *text, uint32_t index) {
   float32_t y = config->height * (float32_t)index +
@@ -24,12 +33,30 @@ Notification notification_init(Config *config, uint8_t *text, uint32_t index) {
     y += config->margin.bottom * (float32_t)index;
   }
 
+  int fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
+  struct itimerspec value = {
+      .it_value =
+          {
+              .tv_sec =
+                  (__time_t)(config->default_timeout / 1000) * (index + 1),
+              .tv_nsec =
+                  (__syscall_slong_t)(config->default_timeout % 1000) * 1000000,
+          },
+      .it_interval =
+          {
+              .tv_sec = 0,
+              .tv_nsec = 0,
+          },
+  };
+  timerfd_settime(fd, 0, &value, 0);
+
   Notification notification = {
       .x = config->margin.left,
       .y = y,
       .width = config->width,
       .height = config->height,
       .text = text,
+      .tfd = fd,
   };
 
   return notification;
@@ -85,6 +112,26 @@ void notification_render_text(Notification *notification, Text *text,
   text_place(text, notification->text, notification->x, notification->y,
              shader_program);
   text_render_call(text, shader_program);
+}
+
+void notification_callback(void *data) {
+  NotificationCallbackData *noti_cb_data = data;
+
+  uint64_t repeats = 0;
+  read(noti_cb_data->notification->tfd, &repeats, sizeof(repeats));
+
+  for (uint32_t i = 0; i < noti_cb_data->eeyelop->notifications.len; i++) {
+    if (noti_cb_data->notification ==
+        noti_cb_data->eeyelop->notifications.items[i]) {
+      eeyelop_notification_remove(noti_cb_data->eeyelop, i);
+      break;
+    }
+  }
+
+  if (eeyelop_render(noti_cb_data->eeyelop) == -1) {
+    EGLint error = eglGetError();
+    printf("Failed to render with error: 0x%x\n", error);
+  };
 }
 
 void eeyelop_notification_render(Eeyelop *eeyelop, Notification *notification) {

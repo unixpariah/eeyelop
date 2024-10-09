@@ -56,6 +56,7 @@ typedef struct {
   Border border;
   Font font;
   Background background;
+  uint32_t default_timeout;
 } Config;
 
 Config config_init(void);

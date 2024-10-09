@@ -1,5 +1,4 @@
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
-#include "xdg-output-client-protocol.h"
 #include <Output.h>
 #include <stdint.h>
 #include <stdio.h>

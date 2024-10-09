@@ -64,12 +64,12 @@ pub fn build(b: *std.Build) !void {
         "src/Seat.c",
         "src/math.c",
         "src/Notification.c",
+        "src/EventLoop.c",
         "src/Text.c",
     };
 
     const protocol_files = &[_][]const u8{
         "lib/xdg-shell-client-protocol.c",
-        "lib/xdg-output-client-protocol.c",
         "lib/wlr-layer-shell-unstable-v1-client-protocol.c",
     };
 
